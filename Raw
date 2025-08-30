@@ -1,557 +1,98 @@
-local UserInputService = game:GetService("UserInputService")
-local PlayerService = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local LocalPlayer = PlayerService.LocalPlayer
-
--- Wait for PlayerGui to exist (important)
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-
--- Check if mobile
-local isMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
-
--- Utility: Debug Log
-local DEBUG = false
-local DebugLog = {}
-local function printDebug(msg)
-    if DEBUG and DebugLog.Output then
-        local newLabel = Instance.new("TextLabel")
-        newLabel.Text = msg
-        newLabel.Size = UDim2.new(1, 0, 0, 18)
-        newLabel.TextColor3 = Color3.new(1, 1, 1)
-        newLabel.BackgroundTransparency = 1
-        newLabel.Font = Enum.Font.SourceSans
-        newLabel.TextSize = 14
-        newLabel.TextXAlignment = Enum.TextXAlignment.Left
-        newLabel.Parent = DebugLog.Output
-        DebugLog.Output.CanvasSize = UDim2.new(0, 0, 0, DebugLog.Output.UIListLayout.AbsoluteContentSize.Y)
-    end
-end
-
--- Hook AntiCheat functions (Adonis bypass)
+--== Local Functions and Variables ==--
 local getinfo = getinfo or debug.getinfo
+local DEBUG = false
 local Hooked = {}
+
 local Detected, Kill
 
-pcall(function() setthreadidentity(2) end)
-for i, v in pairs(getgc and getgc(true) or {}) do
+setthreadidentity(2)
+
+for i, v in getgc(true) do
     if typeof(v) == "table" then
         local DetectFunc = rawget(v, "Detected")
         local KillFunc = rawget(v, "Kill")
+    
         if typeof(DetectFunc) == "function" and not Detected then
             Detected = DetectFunc
-            local OldDetected; OldDetected = hookfunction(Detected, function(Action, Info, NoCrash)
+            
+            local Old; Old = hookfunction(Detected, function(Action, Info, NoCrash)
                 if Action ~= "_" then
-                    printDebug("Adonis AntiCheat flagged\nMethod: ".. tostring(Action) .."\nInfo: ".. tostring(Info))
+                    if DEBUG then
+                        warn(`Adonis AntiCheat flagged\nMethod: {Action}\nInfo: {Info}`)
+                    end
                 end
-                return true -- Bypass action
+                return true
             end)
             table.insert(Hooked, Detected)
         end
+
         if rawget(v, "Variables") and rawget(v, "Process") and typeof(KillFunc) == "function" and not Kill then
             Kill = KillFunc
-            local OldKill; OldKill = hookfunction(Kill, function(Info)
-                printDebug("Adonis AntiCheat tried to kill (fallback): ".. tostring(Info))
-                return -- Ignore kill
+            local Old; Old = hookfunction(Kill, function(Info)
+                if DEBUG then
+                    warn(`Adonis AntiCheat tried to kill (fallback): {Info}`)
+                end
             end)
             table.insert(Hooked, Kill)
         end
     end
 end
-local OldInfo
-if getrenv and getrenv().debug and getrenv().debug.info then
-    OldInfo = hookfunction(getrenv().debug.info, newcclosure(function(...)
-        local LevelOrFunc, Info = ...
-        if Detected and LevelOrFunc == Detected then
-            printDebug("zins | adonis bypassed")
-            return coroutine.yield(coroutine.running())
-        end
-        return OldInfo(...)
-    end))
-end
-pcall(function() setthreadidentity(7) end)
 
--- Draggable helper creation function based on device
-local function MakeDraggable(frame)
-    local dragging = false
-    local dragInput, mousePos, framePos
-
-    frame.InputBegan:Connect(function(input)
-        if isMobile then
-            if input.UserInputType == Enum.UserInputType.Touch then
-                dragging = true
-                mousePos = input.Position
-                framePos = frame.Position
-                input.Changed:Connect(function()
-                    if input.UserInputState == Enum.UserInputState.End then
-                        dragging = false
-                    end
-                end)
-            end
-        else
-            if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                dragging = true
-                mousePos = input.Position
-                framePos = frame.Position
-                input.Changed:Connect(function()
-                    if input.UserInputState == Enum.UserInputState.End then
-                        dragging = false
-                    end
-                end)
-            end
+local Old; Old = hookfunction(getrenv().debug.info, newcclosure(function(...)
+    local LevelOrFunc, Info = ...
+    if Detected and LevelOrFunc == Detected then
+        if DEBUG then
+            warn(`zins | adonis bypassed`)
         end
-    end)
+        return coroutine.yield(coroutine.running())
+    end
+    return Old(...)
+end))
+setthreadidentity(7)
 
-    frame.InputChanged:Connect(function(input)
-        if isMobile then
-            if input.UserInputType == Enum.UserInputType.Touch then
-                dragInput = input
-            end
-        else
-            if input.UserInputType == Enum.UserInputType.MouseMovement then
-                dragInput = input
-            end
-        end
-    end)
-
-    UserInputService.InputChanged:Connect(function(input)
-        if input == dragInput and dragging then
-            local delta = input.Position - mousePos
-            if isMobile then
-                -- vertical drag only on mobile
-                frame.Position = UDim2.new(
-                    framePos.X.Scale,
-                    framePos.X.Offset,
-                    math.clamp(framePos.Y.Scale + delta.Y / workspace.CurrentCamera.ViewportSize.Y, 0.5, 0.85),
-                    framePos.Y.Offset + delta.Y
-                )
-            else
-                frame.Position = UDim2.new(
-                    math.clamp(framePos.X.Scale + delta.X / workspace.CurrentCamera.ViewportSize.X, 0, 1 - frame.Size.X.Scale),
-                    framePos.X.Offset + delta.X,
-                    math.clamp(framePos.Y.Scale + delta.Y / workspace.CurrentCamera.ViewportSize.Y, 0, 1 - frame.Size.Y.Scale),
-                    framePos.Y.Offset + delta.Y
-                )
-            end
-        end
-    end)
+--== Game Points/GUI Destruction ==--
+if not game:IsLoaded() then
+    game.Loaded:Wait()
 end
 
--- Create main GUI container depending on device type
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = isMobile and "BypasserDebugGui_Mobile" or "BypasserDebugGui"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = PlayerGui
-
-local Frame = Instance.new("Frame")
-
--- Initial sizes and positions based on device, collapsed state
-if isMobile then
-    Frame.Size = UDim2.new(1, 0, 0, 50) -- collapsed height for mobile
-    Frame.Position = UDim2.new(0, 0, 0.7, 0)
-else
-    Frame.Size = UDim2.new(0.85, 0, 0, 46) -- collapsed header height for desktop
-    Frame.Position = UDim2.new(0.075, 0, 0.13, 0) -- centered top horizontally
-end
-
-Frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-Frame.BackgroundTransparency = 0.1
-Frame.BorderSizePixel = 0
-Frame.Parent = ScreenGui
-Frame.Active = true
-Frame.ClipsDescendants = true
-
-MakeDraggable(Frame)
-
--- Title
-local Title = Instance.new("TextButton")
-Title.Text = "Anti-Cheat Bypasser Debug ▼"
-Title.Size = isMobile and UDim2.new(1, 0, 0, 50) or UDim2.new(1, 0, 0, 46)
-Title.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-Title.TextColor3 = Color3.new(1,1,1)
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = isMobile and 22 or 20
-Title.Parent = Frame
-
--- Content container
-local ContentContainer = Instance.new("Frame")
-ContentContainer.Size = UDim2.new(1, 0, 0, 280) -- max expanded height
-ContentContainer.Position = UDim2.new(0, 0, 1, 0)
-ContentContainer.BackgroundTransparency = 1
-ContentContainer.Parent = Frame
-ContentContainer.ClipsDescendants = false
-ContentContainer.Visible = false
-
--- UIListLayout for content for desktops and mobiles
-local ContentLayout = Instance.new("UIListLayout")
-ContentLayout.Parent = ContentContainer
-ContentLayout.SortOrder = Enum.SortOrder.LayoutOrder
-ContentLayout.Padding = UDim.new(0, 6)
-
--- Expand/collapse toggle state
-local expanded = false
-
--- Use Title.Activated for safer touch interaction
-Title.Activated:Connect(function()
-    expanded = not expanded
-    ContentContainer.Visible = expanded
-    if expanded then
-        Title.Text = "Anti-Cheat Bypasser Debug ▲"
-        if isMobile then
-            Frame.Size = UDim2.new(1, 0, 0, 450)
-            Frame.Position = UDim2.new(0, 0, 0.7, 0)
-        else
-            Frame.Size = UDim2.new(0.85, 0, 0, 326) -- expanded desktop size (header + content)
-            Frame.Position = UDim2.new(0.075, 0, 0.13, 0)
-        end
-    else
-        Title.Text = "Anti-Cheat Bypasser Debug ▼"
-        if isMobile then
-            Frame.Size = UDim2.new(1, 0, 0, 50)
-            Frame.Position = UDim2.new(0, 0, 0.7, 0)
-        else
-            Frame.Size = UDim2.new(0.85, 0, 0, 46) -- collapsed desktop header height
-            Frame.Position = UDim2.new(0.075, 0, 0.13, 0)
-        end
+spawn(function()
+    while wait() do
+        local player = game.Players.LocalPlayer
+        local playerName = player.Name
+        pcall(function()
+            if game.ReplicatedStorage:FindFirstChild("Remotes") and game.ReplicatedStorage.Remotes:FindFirstChild("Events") and game.ReplicatedStorage.Remotes.Events:FindFirstChild("GameManager") then
+                game.ReplicatedStorage.Remotes.Events.GameManager:Destroy()
+            end
+            if player.PlayerGui:FindFirstChild("Points") then
+                player.PlayerGui.Points.Disabled = true
+                if player.PlayerGui.Points:FindFirstChild("PointsCreator") then
+                    player.PlayerGui.Points.PointsCreator.Disabled = true
+                end
+                player.PlayerGui.Points:Destroy()
+            end
+            if game:GetService("StarterGui"):FindFirstChild("Points") then
+                game:GetService("StarterGui").Points.Disabled = true
+            end
+            if game:GetService("StarterGui"):FindFirstChild("PointsCreator") then
+                game:GetService("StarterGui").PointsCreator.Disabled = true
+            end
+            if game:GetService("StarterGui"):FindFirstChild("Points") then
+                game:GetService("StarterGui").Points:Destroy()
+            end
+        end)
     end
 end)
 
--- Section creator function (debug, misc, etc)
-local function CreateSection(titleText)
-    local section = Instance.new("Frame")
-    section.Size = UDim2.new(1, 0, 0, 60)
-    section.BackgroundTransparency = 1
-    section.Parent = ContentContainer
-
-    local headerBtn = Instance.new("TextButton")
-    headerBtn.Size = UDim2.new(1, 0, 0, 30)
-    headerBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    headerBtn.TextColor3 = Color3.new(1,1,1)
-    headerBtn.Font = Enum.Font.GothamBold
-    headerBtn.TextSize = 16
-    headerBtn.Text = titleText.." ▼"
-    headerBtn.Parent = section
-
-    local contentFrame = Instance.new("Frame")
-    contentFrame.Size = UDim2.new(1, 0, 0, 0)
-    contentFrame.Position = UDim2.new(0, 0, 0, 30)
-    contentFrame.BackgroundTransparency = 1
-    contentFrame.Parent = section
-    contentFrame.ClipsDescendants = true
-
-    local contentLayout = Instance.new("UIListLayout")
-    contentLayout.Parent = contentFrame
-    contentLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    contentLayout.Padding = UDim.new(0, 4)
-
-    local isExpanded = false
-
-    headerBtn.MouseButton1Click:Connect(function()
-        isExpanded = not isExpanded
-        if isExpanded then
-            headerBtn.Text = titleText.." ▲"
-            contentFrame:TweenSize(UDim2.new(1, 0, 0, contentLayout.AbsoluteContentSize.Y + 8), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.25, true)
-            section.Size = UDim2.new(1, 0, 0, 30 + contentLayout.AbsoluteContentSize.Y + 8)
-        else
-            headerBtn.Text = titleText.." ▼"
-            contentFrame:TweenSize(UDim2.new(1, 0, 0, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.25, true)
-            section.Size = UDim2.new(1, 0, 0, 30)
-        end
-    end)
-
-    contentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-        if isExpanded then
-            contentFrame.Size = UDim2.new(1, 0, 0, contentLayout.AbsoluteContentSize.Y + 8)
-            section.Size = UDim2.new(1, 0, 0, 30 + contentLayout.AbsoluteContentSize.Y + 8)
-        end
-    end)
-
-    return contentFrame
-end
-
--- Debug Section
-local debugSection = CreateSection("Debug")
-
-local DebugToggle = Instance.new("TextButton")
-DebugToggle.Text = "Enable DEBUG"
-DebugToggle.Size = UDim2.new(1, 0, 0, 35)
-DebugToggle.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-DebugToggle.TextColor3 = Color3.new(1,1,1)
-DebugToggle.Font = Enum.Font.Gotham
-DebugToggle.TextSize = 16
-DebugToggle.Parent = debugSection
-
-DebugToggle.MouseButton1Click:Connect(function()
-    DEBUG = not DEBUG
-    DebugToggle.Text = DEBUG and "Disable DEBUG" or "Enable DEBUG"
-    if DEBUG then
-        printDebug("DEBUG enabled")
-    else
-        printDebug("DEBUG disabled")
-    end
+--== Load Anti-Kick ==--
+pcall(function()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Exunys/Anti-Kick/main/Anti-Kick.lua"))()
 end)
 
-local ScrollFrame = Instance.new("ScrollingFrame")
-ScrollFrame.Size = UDim2.new(1, 0, 0, 150)
-ScrollFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-ScrollFrame.BorderSizePixel = 0
-ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-ScrollFrame.ScrollBarThickness = 8
-ScrollFrame.Parent = debugSection
-
-local UIListLayout2 = Instance.new("UIListLayout")
-UIListLayout2.Parent = ScrollFrame
-UIListLayout2.SortOrder = Enum.SortOrder.LayoutOrder
-UIListLayout2.Padding = UDim.new(0, 2)
-
-DebugLog.Output = ScrollFrame
-DebugLog.UIListLayout = UIListLayout2
-
--- Misc Section
-local miscSection = CreateSection("Misc")
-
-local function loadInfiniteYield()
-    local url = "https://raw.githubusercontent.com/DarkNetworks/Infinite-Yield/main/latest.lua"
-    local success, err = pcall(function()
-        loadstring(game:HttpGet(url, true))()
-    end)
-    if success then
-        printDebug("Infinite Yield loaded successfully.")
-    else
-        printDebug("Failed to load Infinite Yield: ".. tostring(err))
-    end
-end
-
-local infiniteYieldBtn = Instance.new("TextButton")
-infiniteYieldBtn.Text = "Execute Infinite Yield"
-infiniteYieldBtn.Size = UDim2.new(1, 0, 0, 40)
-infiniteYieldBtn.BackgroundColor3 = Color3.fromRGB(55, 155, 75)
-infiniteYieldBtn.TextColor3 = Color3.new(1,1,1)
-infiniteYieldBtn.Font = Enum.Font.Gotham
-infiniteYieldBtn.TextSize = 17
-infiniteYieldBtn.Parent = miscSection
-
-infiniteYieldBtn.MouseButton1Click:Connect(loadInfiniteYield)
-
--- Separator
-local sep1 = Instance.new("Frame")
-sep1.Size = UDim2.new(1, 0, 0, 2)
-sep1.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-sep1.Parent = miscSection
-
--- Fling Tool Section
-local flingContainer = Instance.new("Frame")
-flingContainer.Size = UDim2.new(1, 0, 0, 220)
-flingContainer.BackgroundTransparency = 1
-flingContainer.Parent = miscSection
-
-local flingTitle = Instance.new("TextLabel")
-flingTitle.Size = UDim2.new(1, 0, 0, 25)
-flingTitle.BackgroundTransparency = 1
-flingTitle.Font = Enum.Font.GothamBold
-flingTitle.TextSize = 16
-flingTitle.TextColor3 = Color3.new(1,1,1)
-flingTitle.Text = "Fling Tool"
-flingTitle.Parent = flingContainer
-
-local dropdownBox = Instance.new("TextButton")
-dropdownBox.Size = UDim2.new(1, 0, 0, 35)
-dropdownBox.Position = UDim2.new(0, 0, 0, 30)
-dropdownBox.BackgroundColor3 = Color3.fromRGB(55, 125, 200)
-dropdownBox.TextColor3 = Color3.new(1, 1, 1)
-dropdownBox.Font = Enum.Font.Gotham
-dropdownBox.TextSize = 16
-dropdownBox.Text = "Select Target ▼"
-dropdownBox.Parent = flingContainer
-
-local dropdownFrame = Instance.new("Frame")
-dropdownFrame.Size = UDim2.new(1, 0, 0, 0)
-dropdownFrame.Position = UDim2.new(0, 0, 0, 65)
-dropdownFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-dropdownFrame.BorderSizePixel = 0
-dropdownFrame.ClipsDescendants = true
-dropdownFrame.Parent = flingContainer
-
-local dropdownLayout = Instance.new("UIListLayout")
-dropdownLayout.Parent = dropdownFrame
-dropdownLayout.SortOrder = Enum.SortOrder.LayoutOrder
-dropdownLayout.Padding = UDim.new(0, 2)
-
-local dropdownExpanded = false
-dropdownBox.MouseButton1Click:Connect(function()
-    dropdownExpanded = not dropdownExpanded
-    if dropdownExpanded then
-        dropdownBox.Text = "Select Target ▲"
-        local dropdownHeight = dropdownLayout.AbsoluteContentSize.Y + 4
-        dropdownFrame:TweenSize(UDim2.new(1, 0, 0, math.clamp(dropdownHeight, 30, 150)), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.2, true)
-    else
-        dropdownBox.Text = "Select Target ▼"
-        dropdownFrame:TweenSize(UDim2.new(1, 0, 0, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.2, true)
-    end
-end)
-
-local selectedTarget = nil
-
-local function updatePlayerList()
-    for _, child in pairs(dropdownFrame:GetChildren()) do
-        if child:IsA("TextButton") then
-            child:Destroy()
-        end
-    end
-
-    for _, plr in pairs(PlayerService:GetPlayers()) do
-        if plr ~= LocalPlayer then
-            local btn = Instance.new("TextButton")
-            btn.Size = UDim2.new(1, 0, 0, 28)
-            btn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-            btn.Font = Enum.Font.Gotham
-            btn.TextSize = 16
-            btn.TextColor3 = Color3.new(1, 1, 1)
-            btn.Text = plr.Name
-            btn.Parent = dropdownFrame
-
-            btn.MouseButton1Click:Connect(function()
-                selectedTarget = plr
-                dropdownBox.Text = plr.Name .. " ▼"
-                dropdownExpanded = false
-                dropdownFrame:TweenSize(UDim2.new(1, 0, 0, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.2, true)
-            end)
-        end
-    end
-
-    if dropdownExpanded then
-        local dh = dropdownLayout.AbsoluteContentSize.Y + 4
-        dropdownFrame.Size = UDim2.new(1, 0, 0, math.clamp(dh, 30, 150))
-    end
-end
-
-PlayerService.PlayerAdded:Connect(updatePlayerList)
-PlayerService.PlayerRemoving:Connect(updatePlayerList)
-updatePlayerList()
-
-local function flingPlayer(plr)
-    if not plr or not plr.Character or not plr.Character:FindFirstChild("HumanoidRootPart") then return end
-    local hrp = plr.Character.HumanoidRootPart
-
-    local bv = Instance.new("BodyVelocity")
-    bv.Velocity = Vector3.new(math.random(-50, 50), 100, math.random(-50, 50)) * 5
-    bv.MaxForce = Vector3.new(1e5, 1e5, 1e5)
-    bv.Parent = hrp
-
-    game:GetService("Debris"):AddItem(bv, 0.3)
-end
-
-local loopFlingTarget = false
-local loopFlingAll = false
-local heartbeatConnection
-
-local function startLoopFlingTarget()
-    if not selectedTarget or not selectedTarget.Character or not selectedTarget.Character:FindFirstChild("HumanoidRootPart") then
-        printDebug("No valid target selected for loop fling.")
-        return
-    end
-    if heartbeatConnection then heartbeatConnection:Disconnect() end
-    heartbeatConnection = RunService.Heartbeat:Connect(function()
-        flingPlayer(selectedTarget)
-    end)
-end
-
-local function startLoopFlingAll()
-    if heartbeatConnection then heartbeatConnection:Disconnect() end
-    heartbeatConnection = RunService.Heartbeat:Connect(function()
-        for _, plr in pairs(PlayerService:GetPlayers()) do
-            if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-                flingPlayer(plr)
-            end
-        end
-    end)
-end
-
-local function stopLoopFling()
-    if heartbeatConnection then
-        heartbeatConnection:Disconnect()
-        heartbeatConnection = nil
-    end
-end
-
-local btnFling = Instance.new("TextButton")
-btnFling.Text = "Fling Target"
-btnFling.Size = UDim2.new(1, 0, 0, 35)
-btnFling.BackgroundColor3 = Color3.fromRGB(200, 80, 80)
-btnFling.TextColor3 = Color3.new(1, 1, 1)
-btnFling.Font = Enum.Font.Gotham
-btnFling.TextSize = 16
-btnFling.Position = UDim2.new(0, 0, 0, 190)
-btnFling.Parent = flingContainer
-
-local btnLoopFlingTarget = Instance.new("TextButton")
-btnLoopFlingTarget.Text = "Loop Fling Target ▶"
-btnLoopFlingTarget.Size = UDim2.new(1, 0, 0, 35)
-btnLoopFlingTarget.BackgroundColor3 = Color3.fromRGB(180, 140, 40)
-btnLoopFlingTarget.TextColor3 = Color3.new(1, 1, 1)
-btnLoopFlingTarget.Font = Enum.Font.Gotham
-btnLoopFlingTarget.TextSize = 16
-btnLoopFlingTarget.Position = UDim2.new(0, 0, 0, 150)
-btnLoopFlingTarget.Parent = flingContainer
-
-local btnLoopFlingAll = Instance.new("TextButton")
-btnLoopFlingAll.Text = "Loop Fling All ▶"
-btnLoopFlingAll.Size = UDim2.new(1, 0, 0, 35)
-btnLoopFlingAll.BackgroundColor3 = Color3.fromRGB(140, 180, 40)
-btnLoopFlingAll.TextColor3 = Color3.new(1, 1, 1)
-btnLoopFlingAll.Font = Enum.Font.Gotham
-btnLoopFlingAll.TextSize = 16
-btnLoopFlingAll.Position = UDim2.new(0, 0, 0, 110)
-btnLoopFlingAll.Parent = flingContainer
-
-local antiKillToggle = Instance.new("TextButton")
-antiKillToggle.Text = "Anti Kill Block ☐"
-antiKillToggle.Size = UDim2.new(1, 0, 0, 30)
-antiKillToggle.BackgroundColor3 = Color3.fromRGB(55, 125, 200)
-antiKillToggle.TextColor3 = Color3.new(1, 1, 1)
-antiKillToggle.Font = Enum.Font.Gotham
-antiKillToggle.TextSize = 15
-antiKillToggle.Position = UDim2.new(0, 0, 0, 60)
-antiKillToggle.Parent = flingContainer
-
-local antiKillBlock = false
-antiKillToggle.MouseButton1Click:Connect(function()
-    antiKillBlock = not antiKillBlock
-    antiKillToggle.Text = "Anti Kill Block " .. (antiKillBlock and "☑" or "☐")
-    printDebug("Anti Kill Block " .. (antiKillBlock and "enabled" or "disabled"))
-end)
-
-btnFling.MouseButton1Click:Connect(function()
-    if selectedTarget then
-        flingPlayer(selectedTarget)
-        printDebug("Flinged target " .. selectedTarget.Name)
-    else
-        printDebug("No target selected to fling.")
-    end
-end)
-
-btnLoopFlingTarget.MouseButton1Click:Connect(function()
-    if loopFlingTarget then
-        loopFlingTarget = false
-        stopLoopFling()
-        btnLoopFlingTarget.Text = "Loop Fling Target ▶"
-        printDebug("Loop fling target stopped.")
-    else
-        loopFlingTarget = true
-        loopFlingAll = false
-        startLoopFlingTarget()
-        btnLoopFlingTarget.Text = "Stop Loop Fling Target ■"
-        btnLoopFlingAll.Text = "Loop Fling All ▶"
-        printDebug("Loop fling target started.")
-    end
-end)
-
-btnLoopFlingAll.MouseButton1Click:Connect(function()
-    if loopFlingAll then
-        loopFlingAll = false
-        stopLoopFling()
-        btnLoopFlingAll.Text = "Loop Fling All ▶"
-        printDebug("Loop fling all stopped.")
-    else
-        loopFlingAll = true
-        loopFlingTarget = false
- 
+--== In-game Notification ==--
+local StarterGui = game:GetService("StarterGui")
+StarterGui:SetCore("SendNotification", {
+    Title = "KCR:Started",
+    Text = "[KAROX COMBINED ANTI-CHEAT REMOVER IS ACTIVATED. PLEASE WAIT]",
+    Icon = "",
+    Duration = 7 -- seconds the notice will show
+})
