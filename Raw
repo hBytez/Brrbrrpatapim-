@@ -1,4 +1,4 @@
---== Notification GUI Creation (KAROX Style with Position and Padding Fix) ==--
+--== Notification GUI Creation (KAROX Style with Position and Padding Fix + Icon Alignment) ==--
 if game.Players.LocalPlayer.PlayerGui:FindFirstChild("KAROXNotice") then
     game.Players.LocalPlayer.PlayerGui.KAROXNotice:Destroy()
 end
@@ -12,7 +12,7 @@ screenGui.Parent = game.Players.LocalPlayer.PlayerGui
 local frame = Instance.new("Frame")
 frame.Name = "NotificationFrame"
 frame.Size = UDim2.new(0, 380, 0, 90)
-frame.Position = UDim2.new(1, -420, 1, -110)  -- Adjusted to prevent clipping
+frame.Position = UDim2.new(1, -420, 1, -110)
 frame.BackgroundColor3 = Color3.fromRGB(37, 37, 37)
 frame.BorderSizePixel = 0
 frame.BackgroundTransparency = 0.05
@@ -31,9 +31,10 @@ local corner = Instance.new("UICorner")
 corner.CornerRadius = UDim.new(0, 12)
 corner.Parent = frame
 
+-- Adjusted icon position aligns with padding
 local icon = Instance.new("ImageLabel")
 icon.Size = UDim2.new(0, 32, 0, 32)
-icon.Position = UDim2.new(0, 16, 0, 16)
+icon.Position = UDim2.new(0, 0, 0, 16) -- aligned with inner padding
 icon.BackgroundTransparency = 1
 icon.Image = "rbxassetid://6031154870"
 icon.ZIndex = 11
@@ -70,7 +71,7 @@ local emojiWarning = Instance.new("ImageLabel")
 emojiWarning.Size = UDim2.new(0, 18, 0, 18)
 emojiWarning.Position = UDim2.new(0, 18, 0, 58)
 emojiWarning.BackgroundTransparency = 1
-emojiWarning.Image = "rbxassetid://7733964640" -- Yellow warning
+emojiWarning.Image = "rbxassetid://7733964640"
 emojiWarning.ZIndex = 11
 emojiWarning.Parent = frame
 
@@ -78,7 +79,7 @@ local emojiInfo = Instance.new("ImageLabel")
 emojiInfo.Size = UDim2.new(0, 18, 0, 18)
 emojiInfo.Position = UDim2.new(0, 18, 0, 76)
 emojiInfo.BackgroundTransparency = 1
-emojiInfo.Image = "rbxassetid://6031068426" -- Blue info
+emojiInfo.Image = "rbxassetid://6031068426"
 emojiInfo.ZIndex = 11
 emojiInfo.Parent = frame
 
@@ -86,7 +87,7 @@ local emojiLock = Instance.new("ImageLabel")
 emojiLock.Size = UDim2.new(0, 18, 0, 18)
 emojiLock.Position = UDim2.new(0, 18, 0, 94)
 emojiLock.BackgroundTransparency = 1
-emojiLock.Image = "rbxassetid://6031218547" -- Lock icon
+emojiLock.Image = "rbxassetid://6031218547"
 emojiLock.ZIndex = 11
 emojiLock.Parent = frame
 
@@ -184,7 +185,6 @@ spawn(function()
     end
 end)
 
---== Load Anti-Kick ==--
 pcall(function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/Exunys/Anti-Kick/main/Anti-Kick.lua"))()
 end)
