@@ -1,34 +1,13 @@
+--== Notification GUI Creation (KAROX Style, Improved Visuals) ==--
 if game.Players.LocalPlayer.PlayerGui:FindFirstChild("KAROXNotice") then
     game.Players.LocalPlayer.PlayerGui.KAROXNotice:Destroy()
 end
 
-local TweenService = game:GetService("TweenService")
-local playerGui = game.Players.LocalPlayer.PlayerGui
-
--- Glowy background frame behind KAROXNotice
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "KAROXNotice"
 screenGui.ResetOnSpawn = false
 screenGui.DisplayOrder = 1000 -- Always on top
-screenGui.Parent = playerGui
-
-local glowFrame = Instance.new("Frame")
-glowFrame.Name = "GlowFrame"
-glowFrame.Size = UDim2.new(0, 400, 0, 110)
-glowFrame.Position = UDim2.new(1, -410, 1, -120)
-glowFrame.BackgroundColor3 = Color3.fromRGB(50, 150, 250)
-glowFrame.BackgroundTransparency = 0.8
-glowFrame.AnchorPoint = Vector2.new(0, 0)
-glowFrame.ZIndex = 9
-glowFrame.Parent = screenGui
-
-local glowUICorner = Instance.new("UICorner")
-glowUICorner.CornerRadius = UDim.new(0, 18)
-glowUICorner.Parent = glowFrame
-
-local pulseTweenInfo = TweenInfo.new(2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true)
-local pulseTween = TweenService:Create(glowFrame, pulseTweenInfo, {BackgroundTransparency = 0.6})
-pulseTween:Play()
+screenGui.Parent = game.Players.LocalPlayer.PlayerGui
 
 local frame = Instance.new("Frame")
 frame.Name = "NotificationFrame"
@@ -37,7 +16,7 @@ frame.Position = UDim2.new(1, -400, 1, -110)
 frame.BackgroundColor3 = Color3.fromRGB(37, 37, 37)
 frame.BorderSizePixel = 0
 frame.BackgroundTransparency = 0.05
-frame.AnchorPoint = Vector2.new(0, 0)
+frame.AnchorPoint = Vector2.new(0,0)
 frame.ZIndex = 10
 frame.Parent = screenGui
 
@@ -59,7 +38,7 @@ title.Position = UDim2.new(0, 56, 0, 16)
 title.BackgroundTransparency = 1
 title.Font = Enum.Font.GothamBold
 title.Text = "KAROX:"
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextColor3 = Color3.fromRGB(255,255,255)
 title.TextSize = 20
 title.TextXAlignment = Enum.TextXAlignment.Left
 title.TextYAlignment = Enum.TextYAlignment.Top
@@ -72,7 +51,7 @@ desc.Position = UDim2.new(0, 16, 0, 38)
 desc.BackgroundTransparency = 1
 desc.Font = Enum.Font.Gotham
 desc.Text = "[KAROX COMBINED ANTI-CHEAT REMOVER IS ACTIVATED. PLEASE WAIT]"
-desc.TextColor3 = Color3.fromRGB(230, 230, 230)
+desc.TextColor3 = Color3.fromRGB(230,230,230)
 desc.TextSize = 16
 desc.TextWrapped = true
 desc.TextXAlignment = Enum.TextXAlignment.Left
@@ -87,7 +66,19 @@ padding.PaddingRight = UDim.new(0, 10)
 padding.PaddingBottom = UDim.new(0, 6)
 padding.Parent = frame
 
--- Anti-cheat bypass core from original script
+-- Fade out notification smoothly after 6 seconds
+local TweenService = game:GetService("TweenService")
+task.delay(6, function()
+    local fadeTime = 2
+    TweenService:Create(frame, TweenInfo.new(fadeTime), {BackgroundTransparency = 1}):Play()
+    TweenService:Create(icon, TweenInfo.new(fadeTime), {ImageTransparency = 1}):Play()
+    TweenService:Create(title, TweenInfo.new(fadeTime), {TextTransparency = 1}):Play()
+    TweenService:Create(desc, TweenInfo.new(fadeTime), {TextTransparency = 1}):Play()
+    task.wait(fadeTime + 0.1)
+    screenGui:Destroy()
+end)
+
+--== Local Functions and Variables ==--
 local getinfo = getinfo or debug.getinfo
 local DEBUG = false
 local Hooked = {}
@@ -133,7 +124,40 @@ local Old; Old = hookfunction(getrenv().debug.info, newcclosure(function(...)
 end))
 setthreadidentity(7)
 
--- Load Anti-Kick
+--== Game Points/GUI Destruction ==--
+if not game:IsLoaded() then
+    game.Loaded:Wait()
+end
+
+spawn(function()
+    while wait() do
+        local player = game.Players.LocalPlayer
+        local playerName = player.Name
+        pcall(function()
+            if game.ReplicatedStorage:FindFirstChild("Remotes") and game.ReplicatedStorage.Remotes:FindFirstChild("Events") and game.ReplicatedStorage.Remotes.Events:FindFirstChild("GameManager") then
+                game.ReplicatedStorage.Remotes.Events.GameManager:Destroy()
+            end
+            if player.PlayerGui:FindFirstChild("Points") then
+                player.PlayerGui.Points.Disabled = true
+                if player.PlayerGui.Points:FindFirstChild("PointsCreator") then
+                    player.PlayerGui.Points.PointsCreator.Disabled = true
+                end
+                player.PlayerGui.Points:Destroy()
+            end
+            if game:GetService("StarterGui"):FindFirstChild("Points") then
+                game:GetService("StarterGui").Points.Disabled = true
+            end
+            if game:GetService("StarterGui"):FindFirstChild("PointsCreator") then
+                game:GetService("StarterGui").PointsCreator.Disabled = true
+            end
+            if game:GetService("StarterGui"):FindFirstChild("Points") then
+                game:GetService("StarterGui").Points:Destroy()
+            end
+        end)
+    end
+end)
+
+--== Load Anti-Kick ==--
 pcall(function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/Exunys/Anti-Kick/main/Anti-Kick.lua"))()
 end)
