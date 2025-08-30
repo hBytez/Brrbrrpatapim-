@@ -1,4 +1,4 @@
---== Notification GUI Creation (KAROX Style with Position and Padding Fix + Icon Alignment) ==--
+--== Notification GUI Creation (KAROX Style with UIListLayout Alignment Fix) ==--
 if game.Players.LocalPlayer.PlayerGui:FindFirstChild("KAROXNotice") then
     game.Players.LocalPlayer.PlayerGui.KAROXNotice:Destroy()
 end
@@ -31,31 +31,100 @@ local corner = Instance.new("UICorner")
 corner.CornerRadius = UDim.new(0, 12)
 corner.Parent = frame
 
--- Adjusted icon position aligns with padding
+-- Horizontal layout for the icon and title
+local topLayoutFrame = Instance.new("Frame")
+topLayoutFrame.Name = "TopLayout"
+topLayoutFrame.BackgroundTransparency = 1
+topLayoutFrame.Size = UDim2.new(1, 0, 0, 40)
+topLayoutFrame.Parent = frame
+
+local topLayout = Instance.new("UIListLayout")
+topLayout.FillDirection = Enum.FillDirection.Horizontal
+topLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+topLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+topLayout.SortOrder = Enum.SortOrder.LayoutOrder
+topLayout.Padding = UDim.new(0, 10)
+topLayout.Parent = topLayoutFrame
+
 local icon = Instance.new("ImageLabel")
+icon.Name = "BellIcon"
 icon.Size = UDim2.new(0, 32, 0, 32)
-icon.Position = UDim2.new(0, 0, 0, 16) -- aligned with inner padding
 icon.BackgroundTransparency = 1
 icon.Image = "rbxassetid://6031154870"
 icon.ZIndex = 11
-icon.Parent = frame
+icon.LayoutOrder = 1
+icon.Parent = topLayoutFrame
 
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, -60, 0, 22)
-title.Position = UDim2.new(0, 56, 0, 16)
+title.Name = "TitleLabel"
+title.Size = UDim2.new(0, 320, 1, 0) -- Fixed width, height fills parent
 title.BackgroundTransparency = 1
 title.Font = Enum.Font.GothamBold
 title.Text = "KAROX:"
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.TextSize = 20
 title.TextXAlignment = Enum.TextXAlignment.Left
-title.TextYAlignment = Enum.TextYAlignment.Top
-title.ZIndex = 11
-title.Parent = frame
+title.TextYAlignment = Enum.TextYAlignment.Center
+title.LayoutOrder = 2
+title.Parent = topLayoutFrame
 
+-- Container for description and emojis
+local descContainer = Instance.new("Frame")
+descContainer.Name = "DescriptionContainer"
+descContainer.BackgroundTransparency = 1
+descContainer.Size = UDim2.new(1, 0, 1, -50) -- Remaining vertical space
+descContainer.Position = UDim2.new(0, 0, 0, 40)
+descContainer.Parent = frame
+
+-- Horizontal layout for emojis and description text
+local descLayout = Instance.new("UIListLayout")
+descLayout.FillDirection = Enum.FillDirection.Horizontal
+descLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+descLayout.SortOrder = Enum.SortOrder.LayoutOrder
+descLayout.Padding = UDim.new(0, 12)
+descLayout.Parent = descContainer
+
+-- Emoji container with vertical layout
+local emojiFrame = Instance.new("Frame")
+emojiFrame.Name = "EmojiFrame"
+emojiFrame.BackgroundTransparency = 1
+emojiFrame.Size = UDim2.new(0, 30, 1, 0)
+emojiFrame.LayoutOrder = 1
+emojiFrame.Parent = descContainer
+
+local emojiLayout = Instance.new("UIListLayout")
+emojiLayout.FillDirection = Enum.FillDirection.Vertical
+emojiLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+emojiLayout.SortOrder = Enum.SortOrder.LayoutOrder
+emojiLayout.Padding = UDim.new(0, 8)
+emojiLayout.Parent = emojiFrame
+
+local emojiWarning = Instance.new("ImageLabel")
+emojiWarning.Size = UDim2.new(1, 0, 0, 18)
+emojiWarning.BackgroundTransparency = 1
+emojiWarning.Image = "rbxassetid://7733964640"
+emojiWarning.LayoutOrder = 1
+emojiWarning.Parent = emojiFrame
+
+local emojiInfo = Instance.new("ImageLabel")
+emojiInfo.Size = UDim2.new(1, 0, 0, 18)
+emojiInfo.BackgroundTransparency = 1
+emojiInfo.Image = "rbxassetid://6031068426"
+emojiInfo.LayoutOrder = 2
+emojiInfo.Parent = emojiFrame
+
+local emojiLock = Instance.new("ImageLabel")
+emojiLock.Size = UDim2.new(1, 0, 0, 18)
+emojiLock.BackgroundTransparency = 1
+emojiLock.Image = "rbxassetid://6031218547"
+emojiLock.LayoutOrder = 3
+emojiLock.Parent = emojiFrame
+
+-- Description text label
 local desc = Instance.new("TextLabel")
-desc.Size = UDim2.new(1, -40, 1, -40)
-desc.Position = UDim2.new(0, 56, 0, 38)
+desc.Name = "DescriptionText"
+desc.Size = UDim2.new(1, -30, 1, 0) -- Remaining horizontal space in descContainer minus emojiFrame width
+desc.LayoutOrder = 2
 desc.BackgroundTransparency = 1
 desc.Font = Enum.Font.Gotham
 desc.Text = "[KAROX COMBINED ANTI-CHEAT REMOVER IS ACTIVATED. PLEASE WAIT]"
@@ -64,33 +133,9 @@ desc.TextSize = 16
 desc.TextWrapped = true
 desc.TextXAlignment = Enum.TextXAlignment.Left
 desc.TextYAlignment = Enum.TextYAlignment.Top
-desc.ZIndex = 11
-desc.Parent = frame
+desc.Parent = descContainer
 
-local emojiWarning = Instance.new("ImageLabel")
-emojiWarning.Size = UDim2.new(0, 18, 0, 18)
-emojiWarning.Position = UDim2.new(0, 18, 0, 58)
-emojiWarning.BackgroundTransparency = 1
-emojiWarning.Image = "rbxassetid://7733964640"
-emojiWarning.ZIndex = 11
-emojiWarning.Parent = frame
-
-local emojiInfo = Instance.new("ImageLabel")
-emojiInfo.Size = UDim2.new(0, 18, 0, 18)
-emojiInfo.Position = UDim2.new(0, 18, 0, 76)
-emojiInfo.BackgroundTransparency = 1
-emojiInfo.Image = "rbxassetid://6031068426"
-emojiInfo.ZIndex = 11
-emojiInfo.Parent = frame
-
-local emojiLock = Instance.new("ImageLabel")
-emojiLock.Size = UDim2.new(0, 18, 0, 18)
-emojiLock.Position = UDim2.new(0, 18, 0, 94)
-emojiLock.BackgroundTransparency = 1
-emojiLock.Image = "rbxassetid://6031218547"
-emojiLock.ZIndex = 11
-emojiLock.Parent = frame
-
+-- Fade out after 6 seconds
 local TweenService = game:GetService("TweenService")
 
 task.delay(6, function()
@@ -106,7 +151,7 @@ task.delay(6, function()
     screenGui:Destroy()
 end)
 
---== Local Functions and Variables ==--
+--== Your Anti-cheat Hooks and Logic ==--
 local getinfo = getinfo or debug.getinfo
 local DEBUG = false
 local Hooked = {}
