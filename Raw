@@ -53,6 +53,30 @@ desc.TextSize = 16
 desc.TextWrapped = true
 desc.Parent = frame
 
+-- Grey outline on the main frame
+local stroke = Instance.new("UIStroke")
+stroke.Thickness = 2
+stroke.Color = Color3.fromRGB(128, 128, 128) -- grey
+stroke.Parent = frame
+
+-- Grey outline on icon
+local iconStroke = Instance.new("UIStroke")
+iconStroke.Thickness = 1
+iconStroke.Color = Color3.fromRGB(128, 128, 128)
+iconStroke.Parent = icon
+
+-- Grey outline on title
+local titleStroke = Instance.new("UIStroke")
+titleStroke.Thickness = 1
+titleStroke.Color = Color3.fromRGB(128, 128, 128)
+titleStroke.Parent = title
+
+-- Grey outline on description
+local descStroke = Instance.new("UIStroke")
+descStroke.Thickness = 1
+descStroke.Color = Color3.fromRGB(128, 128, 128)
+descStroke.Parent = desc
+
 game:GetService("Debris"):AddItem(screenGui, 8)
 
 --== Local Functions and Variables ==--
