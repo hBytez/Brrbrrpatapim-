@@ -1,4 +1,4 @@
---== Notification GUI Creation (KAROX Style, Improved Visuals) ==--
+--== Notification GUI Creation (KAROX Style with GUI Enhancements) ==--
 if game.Players.LocalPlayer.PlayerGui:FindFirstChild("KAROXNotice") then
     game.Players.LocalPlayer.PlayerGui.KAROXNotice:Destroy()
 end
@@ -24,13 +24,14 @@ local corner = Instance.new("UICorner")
 corner.CornerRadius = UDim.new(0, 12)
 corner.Parent = frame
 
-local icon = Instance.new("ImageLabel")
-icon.Size = UDim2.new(0, 32, 0, 32)
-icon.Position = UDim2.new(0, 16, 0, 16)
-icon.BackgroundTransparency = 1
-icon.Image = "rbxassetid://6031154870" -- Bell icon asset
-icon.ZIndex = 11
-icon.Parent = frame
+-- Bell icon on the left
+local bellIcon = Instance.new("ImageLabel")
+bellIcon.Size = UDim2.new(0, 32, 0, 32)
+bellIcon.Position = UDim2.new(0, 16, 0, 16)
+bellIcon.BackgroundTransparency = 1
+bellIcon.Image = "rbxassetid://6031154870"
+bellIcon.ZIndex = 11
+bellIcon.Parent = frame
 
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, -60, 0, 22)
@@ -38,26 +39,51 @@ title.Position = UDim2.new(0, 56, 0, 16)
 title.BackgroundTransparency = 1
 title.Font = Enum.Font.GothamBold
 title.Text = "KAROX:"
-title.TextColor3 = Color3.fromRGB(255,255,255)
-title.TextSize = 20
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.TextXAlignment = Enum.TextXAlignment.Left
+title.TextSize = 20
 title.TextYAlignment = Enum.TextYAlignment.Top
 title.ZIndex = 11
 title.Parent = frame
 
 local desc = Instance.new("TextLabel")
 desc.Size = UDim2.new(1, -32, 1, -48)
-desc.Position = UDim2.new(0, 16, 0, 38)
+desc.Position = UDim2.new(0, 56, 0, 38)
 desc.BackgroundTransparency = 1
 desc.Font = Enum.Font.Gotham
 desc.Text = "[KAROX COMBINED ANTI-CHEAT REMOVER IS ACTIVATED. PLEASE WAIT]"
-desc.TextColor3 = Color3.fromRGB(230,230,230)
+desc.TextColor3 = Color3.fromRGB(230, 230, 230)
 desc.TextSize = 16
 desc.TextWrapped = true
 desc.TextXAlignment = Enum.TextXAlignment.Left
 desc.TextYAlignment = Enum.TextYAlignment.Top
 desc.ZIndex = 11
 desc.Parent = frame
+
+-- Emoji icons, positioned vertically aligned to the left of description text
+local emojiWarning = Instance.new("ImageLabel")
+emojiWarning.Size = UDim2.new(0, 18, 0, 18)
+emojiWarning.Position = UDim2.new(0, 18, 0, 58)
+emojiWarning.BackgroundTransparency = 1
+emojiWarning.Image = "rbxassetid://7733964640" -- Yellow warning emoji
+emojiWarning.ZIndex = 11
+emojiWarning.Parent = frame
+
+local emojiInfo = Instance.new("ImageLabel")
+emojiInfo.Size = UDim2.new(0, 18, 0, 18)
+emojiInfo.Position = UDim2.new(0, 18, 0, 76)
+emojiInfo.BackgroundTransparency = 1
+emojiInfo.Image = "rbxassetid://6031068426" -- Blue info emoji
+emojiInfo.ZIndex = 11
+emojiInfo.Parent = frame
+
+local emojiLock = Instance.new("ImageLabel")
+emojiLock.Size = UDim2.new(0, 18, 0, 18)
+emojiLock.Position = UDim2.new(0, 18, 0, 94)
+emojiLock.BackgroundTransparency = 1
+emojiLock.Image = "rbxassetid://6031218547" -- Lock emoji asset
+emojiLock.ZIndex = 11
+emojiLock.Parent = frame
 
 local padding = Instance.new("UIPadding")
 padding.PaddingLeft = UDim.new(0, 10)
@@ -66,14 +92,17 @@ padding.PaddingRight = UDim.new(0, 10)
 padding.PaddingBottom = UDim.new(0, 6)
 padding.Parent = frame
 
--- Fade out notification smoothly after 6 seconds
+-- Smooth fade out using TweenService
 local TweenService = game:GetService("TweenService")
 task.delay(6, function()
     local fadeTime = 2
     TweenService:Create(frame, TweenInfo.new(fadeTime), {BackgroundTransparency = 1}):Play()
-    TweenService:Create(icon, TweenInfo.new(fadeTime), {ImageTransparency = 1}):Play()
+    TweenService:Create(bellIcon, TweenInfo.new(fadeTime), {ImageTransparency = 1}):Play()
     TweenService:Create(title, TweenInfo.new(fadeTime), {TextTransparency = 1}):Play()
     TweenService:Create(desc, TweenInfo.new(fadeTime), {TextTransparency = 1}):Play()
+    TweenService:Create(emojiWarning, TweenInfo.new(fadeTime), {ImageTransparency = 1}):Play()
+    TweenService:Create(emojiInfo, TweenInfo.new(fadeTime), {ImageTransparency = 1}):Play()
+    TweenService:Create(emojiLock, TweenInfo.new(fadeTime), {ImageTransparency = 1}):Play()
     task.wait(fadeTime + 0.1)
     screenGui:Destroy()
 end)
