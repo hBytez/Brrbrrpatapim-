@@ -1,4 +1,4 @@
---== Notification GUI Creation (KAROX Style) ==--
+--== Notification GUI Creation (KAROX Style, Improved Visuals) ==--
 if game.Players.LocalPlayer.PlayerGui:FindFirstChild("KAROXNotice") then
     game.Players.LocalPlayer.PlayerGui.KAROXNotice:Destroy()
 end
@@ -6,6 +6,7 @@ end
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "KAROXNotice"
 screenGui.ResetOnSpawn = false
+screenGui.DisplayOrder = 1000 -- Always on top
 screenGui.Parent = game.Players.LocalPlayer.PlayerGui
 
 local frame = Instance.new("Frame")
@@ -16,6 +17,7 @@ frame.BackgroundColor3 = Color3.fromRGB(37, 37, 37)
 frame.BorderSizePixel = 0
 frame.BackgroundTransparency = 0.05
 frame.AnchorPoint = Vector2.new(0,0)
+frame.ZIndex = 10
 frame.Parent = screenGui
 
 local corner = Instance.new("UICorner")
@@ -27,6 +29,7 @@ icon.Size = UDim2.new(0, 32, 0, 32)
 icon.Position = UDim2.new(0, 16, 0, 16)
 icon.BackgroundTransparency = 1
 icon.Image = "rbxassetid://6031154870" -- Bell icon asset
+icon.ZIndex = 11
 icon.Parent = frame
 
 local title = Instance.new("TextLabel")
@@ -35,9 +38,11 @@ title.Position = UDim2.new(0, 56, 0, 16)
 title.BackgroundTransparency = 1
 title.Font = Enum.Font.GothamBold
 title.Text = "KAROX:"
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
-title.TextXAlignment = Enum.TextXAlignment.Left
+title.TextColor3 = Color3.fromRGB(255,255,255)
 title.TextSize = 20
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.TextYAlignment = Enum.TextYAlignment.Top
+title.ZIndex = 11
 title.Parent = frame
 
 local desc = Instance.new("TextLabel")
@@ -46,14 +51,32 @@ desc.Position = UDim2.new(0, 16, 0, 38)
 desc.BackgroundTransparency = 1
 desc.Font = Enum.Font.Gotham
 desc.Text = "[KAROX COMBINED ANTI-CHEAT REMOVER IS ACTIVATED. PLEASE WAIT]"
-desc.TextColor3 = Color3.fromRGB(230, 230, 230)
-desc.TextXAlignment = Enum.TextXAlignment.Left
-desc.TextYAlignment = Enum.TextYAlignment.Top
+desc.TextColor3 = Color3.fromRGB(230,230,230)
 desc.TextSize = 16
 desc.TextWrapped = true
+desc.TextXAlignment = Enum.TextXAlignment.Left
+desc.TextYAlignment = Enum.TextYAlignment.Top
+desc.ZIndex = 11
 desc.Parent = frame
 
-game:GetService("Debris"):AddItem(screenGui, 8)
+local padding = Instance.new("UIPadding")
+padding.PaddingLeft = UDim.new(0, 10)
+padding.PaddingTop = UDim.new(0, 6)
+padding.PaddingRight = UDim.new(0, 10)
+padding.PaddingBottom = UDim.new(0, 6)
+padding.Parent = frame
+
+-- Fade out notification smoothly after 6 seconds
+local TweenService = game:GetService("TweenService")
+task.delay(6, function()
+    local fadeTime = 2
+    TweenService:Create(frame, TweenInfo.new(fadeTime), {BackgroundTransparency = 1}):Play()
+    TweenService:Create(icon, TweenInfo.new(fadeTime), {ImageTransparency = 1}):Play()
+    TweenService:Create(title, TweenInfo.new(fadeTime), {TextTransparency = 1}):Play()
+    TweenService:Create(desc, TweenInfo.new(fadeTime), {TextTransparency = 1}):Play()
+    task.wait(fadeTime + 0.1)
+    screenGui:Destroy()
+end)
 
 --== Local Functions and Variables ==--
 local getinfo = getinfo or debug.getinfo
