@@ -4,6 +4,58 @@ local Hooked = {}
 
 local Detected, Kill
 
+setthreadidentity(2)
+
+for i, v in getgc(true) do
+    if typeof(v) == "table" then
+        local DetectFunc = rawget(v, "Detected")
+        local KillFunc = rawget(v, "Kill")
+    
+        if typeof(DetectFunc) == "function" and not Detected then
+            Detected = DetectFunc
+            
+            local Old; Old = hookfunction(Detected, function(Action, Info, NoCrash)
+                if Action ~= "_" then
+                    if DEBUG then
+                        warn(`Adonis AntiCheat flagged\nMethod: {Action}\nInfo: {Info}`)
+                    end
+                end
+                
+                return true
+            end)
+
+            table.insert(Hooked, Detected)
+        end
+
+        if rawget(v, "Variables") and rawget(v, "Process") and typeof(KillFunc) == "function" and not Kill then
+            Kill = KillFunc
+            local Old; Old = hookfunction(Kill, function(Info)
+                if DEBUG then
+                    warn(`Adonis AntiCheat tried to kill (fallback): {Info}`)
+                end
+            end)
+
+            table.insert(Hooked, Kill)
+        end
+    end
+end
+
+local Old; Old = hookfunction(getrenv().debug.info, newcclosure(function(...)
+    local LevelOrFunc, Info = ...
+
+    if Detected and LevelOrFunc == Detected then
+        if DEBUG then
+            warn(`zins | adonis bypassed`)
+        end
+
+        return coroutine.yield(coroutine.running())
+    end
+    
+    return Old(...)
+end))
+-- setthreadidentity(9)
+setthreadidentity(7)
+
 -- Utility: Print to in-game GUI log if DEBUG enabled
 local DebugLog = {}
 
@@ -23,10 +75,10 @@ local function printDebug(msg)
 end
 
 -- Set thread identity for execution context (adjust if needed)
-setthreadidentity(2)
+pcall(function() setthreadidentity(2) end)
 
 -- Adonis AntiCheat bypass hooking
-for i, v in getgc(true) do
+for i, v in pairs(getgc and getgc(true) or {}) do
     if typeof(v) == "table" then
         local DetectFunc = rawget(v, "Detected")
         local KillFunc = rawget(v, "Kill")
@@ -61,33 +113,24 @@ for i, v in getgc(true) do
 end
 
 -- Hook debug.info to yield coroutine for detected function calls
-local OldInfo; OldInfo = hookfunction(getrenv().debug.info, newcclosure(function(...)
-    local LevelOrFunc, Info = ...
+local OldInfo
+if getrenv and getrenv().debug and getrenv().debug.info then
+    OldInfo = hookfunction(getrenv().debug.info, newcclosure(function(...)
+        local LevelOrFunc, Info = ...
 
-    if Detected and LevelOrFunc == Detected then
-        printDebug("zins | adonis bypassed")
-        -- Yield coroutine to avoid detection flow
-        return coroutine.yield(coroutine.running())
-    end
-    
-    -- Otherwise return original behavior
-    return OldInfo(...)
-end))
+        if Detected and LevelOrFunc == Detected then
+            printDebug("zins | adonis bypassed")
+            -- Yield coroutine to avoid detection flow
+            return coroutine.yield(coroutine.running())
+        end
+        
+        -- Otherwise return original behavior
+        return OldInfo(...)
+    end))
+end
 
 -- Reset thread identity for next parts
-setthreadidentity(7)
-
--- Function to load external bypass scripts safely
-local function loadBypassScript(url, name)
-    local success, err = pcall(function()
-        loadstring(game:HttpGet(url, true))()
-    end)
-    if not success then
-        printDebug(name .. " bypass script failed to load: " .. tostring(err))
-    else
-        printDebug(name .. " bypass script loaded successfully.")
-    end
-end
+pcall(function() setthreadidentity(7) end)
 
 -- Utility: Create draggable GUI frame (mobile friendly)
 local function MakeDraggable(frame)
@@ -128,13 +171,12 @@ local function MakeDraggable(frame)
 end
 
 -- Create the main ScreenGui for the bypasser
+local CoreGui = game:GetService("CoreGui")
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "BypasserDebugGui"
 ScreenGui.ResetOnSpawn = false
--- Changed part: Parent to PlayerGui for mobile compatibility
-local Player = game:GetService("Players").LocalPlayer
-local PlayerGui = Player:WaitForChild("PlayerGui")
-ScreenGui.Parent = PlayerGui
+-- Parent to CoreGui, safer for admin scripts
+ScreenGui.Parent = CoreGui
 
 -- Main frame (dropdown container)
 local Frame = Instance.new("Frame")
@@ -246,7 +288,6 @@ end
 
 -- Debug Section
 local debugSection = CreateSection("Debug")
-debugSection.Parent = ContentContainer
 
 -- Debug toggle button
 local DebugToggle = Instance.new("TextButton")
@@ -289,11 +330,10 @@ DebugLog.UIListLayout = UIListLayout2
 -- Misc Section (Infinite Yield + Fling)
 -----------------------------------
 local miscSection = CreateSection("Misc")
-miscSection.Parent = ContentContainer
 
 -- Helper: Load latest Infinite Yield on button click
 local function loadInfiniteYield()
-    local url = "loadstring(game:HttpGet('https://raw.githubusercontent.com/DarkNetworks/Infinite-Yield/main/latest.lua'))()"
+    local url = "https://raw.githubusercontent.com/DarkNetworks/Infinite-Yield/main/latest.lua"
     local success, err = pcall(function()
         loadstring(game:HttpGet(url, true))()
     end)
@@ -321,7 +361,8 @@ sep1.Size = UDim2.new(1, 0, 0, 2)
 sep1.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
 sep1.Parent = miscSection
 
--- FLING TOOL GUI (continues as is…)
+-- Fling Tool GUI
+
 local flingContainer = Instance.new("Frame")
 flingContainer.Size = UDim2.new(1, 0, 0, 220)
 flingContainer.BackgroundTransparency = 1
@@ -336,16 +377,15 @@ flingTitle.TextColor3 = Color3.new(1,1,1)
 flingTitle.Text = "Fling Tool"
 flingTitle.Parent = flingContainer
 
--- Target dropdown (dropdown style)
 local PlayerService = game:GetService("Players")
 local LocalPlayer = PlayerService.LocalPlayer
 local RunService = game:GetService("RunService")
 
 local dropdownBox = Instance.new("TextButton")
 dropdownBox.Size = UDim2.new(1, 0, 0, 35)
-dropdownBox.Position = UDim2.new(0,0,0,30)
+dropdownBox.Position = UDim2.new(0, 0, 0, 30)
 dropdownBox.BackgroundColor3 = Color3.fromRGB(55, 125, 200)
-dropdownBox.TextColor3 = Color3.new(1,1,1)
+dropdownBox.TextColor3 = Color3.new(1, 1, 1)
 dropdownBox.Font = Enum.Font.Gotham
 dropdownBox.TextSize = 16
 dropdownBox.Text = "Select Target ▼"
@@ -354,7 +394,7 @@ dropdownBox.Parent = flingContainer
 local dropdownFrame = Instance.new("Frame")
 dropdownFrame.Size = UDim2.new(1, 0, 0, 0)
 dropdownFrame.Position = UDim2.new(0, 0, 0, 65)
-dropdownFrame.BackgroundColor3 = Color3.fromRGB(35,35,35)
+dropdownFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 dropdownFrame.BorderSizePixel = 0
 dropdownFrame.ClipsDescendants = true
 dropdownFrame.Parent = flingContainer
@@ -369,7 +409,6 @@ dropdownBox.MouseButton1Click:Connect(function()
     dropdownExpanded = not dropdownExpanded
     if dropdownExpanded then
         dropdownBox.Text = "Select Target ▲"
-        -- Estimate height dynamically
         local dropdownHeight = dropdownLayout.AbsoluteContentSize.Y + 4
         dropdownFrame:TweenSize(UDim2.new(1, 0, 0, math.clamp(dropdownHeight, 30, 150)), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.2, true)
     else
@@ -378,9 +417,9 @@ dropdownBox.MouseButton1Click:Connect(function()
     end
 end)
 
--- Populate dropdown players (excluding local player)
+local selectedTarget = nil
+
 local function updatePlayerList()
-    -- Clear previous
     for _, child in pairs(dropdownFrame:GetChildren()) do
         if child:IsA("TextButton") then
             child:Destroy()
@@ -407,7 +446,6 @@ local function updatePlayerList()
         end
     end
 
-    -- Update dropdownFrame height if expanded
     if dropdownExpanded then
         local dh = dropdownLayout.AbsoluteContentSize.Y + 4
         dropdownFrame.Size = UDim2.new(1, 0, 0, math.clamp(dh, 30, 150))
@@ -418,81 +456,22 @@ PlayerService.PlayerAdded:Connect(updatePlayerList)
 PlayerService.PlayerRemoving:Connect(updatePlayerList)
 updatePlayerList()
 
-local selectedTarget = nil
-
--- Fling tool functions
-
-local RunServiceHeartbeat
-local flingBodyVelocity
-
 local function flingPlayer(plr)
     if not plr or not plr.Character or not plr.Character:FindFirstChild("HumanoidRootPart") then return end
     local hrp = plr.Character.HumanoidRootPart
 
-    -- Basic fling: apply BodyVelocity pushing character away
     local bv = Instance.new("BodyVelocity")
-    bv.Velocity = Vector3.new(math.random(-50,50), 100, math.random(-50,50)) * 5
+    bv.Velocity = Vector3.new(math.random(-50, 50), 100, math.random(-50, 50)) * 5
     bv.MaxForce = Vector3.new(1e5, 1e5, 1e5)
     bv.Parent = hrp
 
-    -- Remove after a short delay
     game:GetService("Debris"):AddItem(bv, 0.3)
 end
 
 local loopFlingTarget = false
 local loopFlingAll = false
-local antiKillBlock = false
-
--- Control buttons & toggles
-
-local btnFling = Instance.new("TextButton")
-btnFling.Text = "Fling Target"
-btnFling.Size = UDim2.new(1, 0, 0, 35)
-btnFling.BackgroundColor3 = Color3.fromRGB(200, 80, 80)
-btnFling.TextColor3 = Color3.new(1,1,1)
-btnFling.Font = Enum.Font.Gotham
-btnFling.TextSize = 16
-btnFling.Position = UDim2.new(0,0,0, 190)
-btnFling.Parent = flingContainer
-
-local btnLoopFlingTarget = Instance.new("TextButton")
-btnLoopFlingTarget.Text = "Loop Fling Target ▶"
-btnLoopFlingTarget.Size = UDim2.new(1, 0, 0, 35)
-btnLoopFlingTarget.BackgroundColor3 = Color3.fromRGB(180, 140, 40)
-btnLoopFlingTarget.TextColor3 = Color3.new(1,1,1)
-btnLoopFlingTarget.Font = Enum.Font.Gotham
-btnLoopFlingTarget.TextSize = 16
-btnLoopFlingTarget.Position = UDim2.new(0,0,0, 150)
-btnLoopFlingTarget.Parent = flingContainer
-
-local btnLoopFlingAll = Instance.new("TextButton")
-btnLoopFlingAll.Text = "Loop Fling All ▶"
-btnLoopFlingAll.Size = UDim2.new(1, 0, 0, 35)
-btnLoopFlingAll.BackgroundColor3 = Color3.fromRGB(140, 180, 40)
-btnLoopFlingAll.TextColor3 = Color3.new(1,1,1)
-btnLoopFlingAll.Font = Enum.Font.Gotham
-btnLoopFlingAll.TextSize = 16
-btnLoopFlingAll.Position = UDim2.new(0,0,0, 110)
-btnLoopFlingAll.Parent = flingContainer
-
-local antiKillToggle = Instance.new("TextButton")
-antiKillToggle.Text = "Anti Kill Block ☐"
-antiKillToggle.Size = UDim2.new(1, 0, 0, 30)
-antiKillToggle.BackgroundColor3 = Color3.fromRGB(55, 125, 200)
-antiKillToggle.TextColor3 = Color3.new(1,1,1)
-antiKillToggle.Font = Enum.Font.Gotham
-antiKillToggle.TextSize = 15
-antiKillToggle.Position = UDim2.new(0,0,0, 60)
-antiKillToggle.Parent = flingContainer
-
-antiKillToggle.MouseButton1Click:Connect(function()
-    antiKillBlock = not antiKillBlock
-    antiKillToggle.Text = "Anti Kill Block " .. (antiKillBlock and "☑" or "☐")
-    printDebug("Anti Kill Block " .. (antiKillBlock and "enabled" or "disabled"))
-end)
-
--- Loop fling logic helper
 local heartbeatConnection
+
 local function startLoopFlingTarget()
     if not selectedTarget or not selectedTarget.Character or not selectedTarget.Character:FindFirstChild("HumanoidRootPart") then
         printDebug("No valid target selected for loop fling.")
@@ -522,7 +501,52 @@ local function stopLoopFling()
     end
 end
 
--- Button logic
+local btnFling = Instance.new("TextButton")
+btnFling.Text = "Fling Target"
+btnFling.Size = UDim2.new(1, 0, 0, 35)
+btnFling.BackgroundColor3 = Color3.fromRGB(200, 80, 80)
+btnFling.TextColor3 = Color3.new(1, 1, 1)
+btnFling.Font = Enum.Font.Gotham
+btnFling.TextSize = 16
+btnFling.Position = UDim2.new(0, 0, 0, 190)
+btnFling.Parent = flingContainer
+
+local btnLoopFlingTarget = Instance.new("TextButton")
+btnLoopFlingTarget.Text = "Loop Fling Target ▶"
+btnLoopFlingTarget.Size = UDim2.new(1, 0, 0, 35)
+btnLoopFlingTarget.BackgroundColor3 = Color3.fromRGB(180, 140, 40)
+btnLoopFlingTarget.TextColor3 = Color3.new(1, 1, 1)
+btnLoopFlingTarget.Font = Enum.Font.Gotham
+btnLoopFlingTarget.TextSize = 16
+btnLoopFlingTarget.Position = UDim2.new(0, 0, 0, 150)
+btnLoopFlingTarget.Parent = flingContainer
+
+local btnLoopFlingAll = Instance.new("TextButton")
+btnLoopFlingAll.Text = "Loop Fling All ▶"
+btnLoopFlingAll.Size = UDim2.new(1, 0, 0, 35)
+btnLoopFlingAll.BackgroundColor3 = Color3.fromRGB(140, 180, 40)
+btnLoopFlingAll.TextColor3 = Color3.new(1, 1, 1)
+btnLoopFlingAll.Font = Enum.Font.Gotham
+btnLoopFlingAll.TextSize = 16
+btnLoopFlingAll.Position = UDim2.new(0, 0, 0, 110)
+btnLoopFlingAll.Parent = flingContainer
+
+local antiKillToggle = Instance.new("TextButton")
+antiKillToggle.Text = "Anti Kill Block ☐"
+antiKillToggle.Size = UDim2.new(1, 0, 0, 30)
+antiKillToggle.BackgroundColor3 = Color3.fromRGB(55, 125, 200)
+antiKillToggle.TextColor3 = Color3.new(1, 1, 1)
+antiKillToggle.Font = Enum.Font.Gotham
+antiKillToggle.TextSize = 15
+antiKillToggle.Position = UDim2.new(0, 0, 0, 60)
+antiKillToggle.Parent = flingContainer
+
+local antiKillBlock = false
+antiKillToggle.MouseButton1Click:Connect(function()
+    antiKillBlock = not antiKillBlock
+    antiKillToggle.Text = "Anti Kill Block " .. (antiKillBlock and "☑" or "☐")
+    printDebug("Anti Kill Block " .. (antiKillBlock and "enabled" or "disabled"))
+end)
 
 btnFling.MouseButton1Click:Connect(function()
     if selectedTarget then
@@ -549,27 +573,4 @@ btnLoopFlingTarget.MouseButton1Click:Connect(function()
     end
 end)
 
-btnLoopFlingAll.MouseButton1Click:Connect(function()
-    if loopFlingAll then
-        loopFlingAll = false
-        stopLoopFling()
-        btnLoopFlingAll.Text = "Loop Fling All ▶"
-        printDebug("Loop fling all stopped.")
-    else
-        loopFlingAll = true
-        loopFlingTarget = false
-        startLoopFlingAll()
-        btnLoopFlingAll.Text = "Stop Loop Fling All ■"
-        btnLoopFlingTarget.Text = "Loop Fling Target ▶"
-        printDebug("Loop fling all started.")
-    end
-end)
-
------------------------------
--- Badge popup for success
------------------------------
-local function showBadge(text)
-    local badge = Instance.new("TextLabel")
-    badge.Size = UDim2.new(0, 220, 0, 50)
-    badge.Position = UDim2.new(0.5, -110, 0.1, 0)
-    badge.BackgroundColor3 = Color3.fromRGB(55, 155 
+btnLoopFlingAll.MouseButton1Click:Connect(fu
