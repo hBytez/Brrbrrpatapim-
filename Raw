@@ -131,7 +131,10 @@ end
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "BypasserDebugGui"
 ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = game:GetService("CoreGui")
+-- Changed part: Parent to PlayerGui for mobile compatibility
+local Player = game:GetService("Players").LocalPlayer
+local PlayerGui = Player:WaitForChild("PlayerGui")
+ScreenGui.Parent = PlayerGui
 
 -- Main frame (dropdown container)
 local Frame = Instance.new("Frame")
@@ -290,7 +293,6 @@ miscSection.Parent = ContentContainer
 
 -- Helper: Load latest Infinite Yield on button click
 local function loadInfiniteYield()
-    -- Replace the URL below with a valid Infinite Yield URL if needed
     local url = "loadstring(game:HttpGet('https://raw.githubusercontent.com/DarkNetworks/Infinite-Yield/main/latest.lua'))()"
     local success, err = pcall(function()
         loadstring(game:HttpGet(url, true))()
@@ -319,8 +321,7 @@ sep1.Size = UDim2.new(1, 0, 0, 2)
 sep1.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
 sep1.Parent = miscSection
 
--- FLING TOOL GUI
-
+-- FLING TOOL GUI (continues as is…)
 local flingContainer = Instance.new("Frame")
 flingContainer.Size = UDim2.new(1, 0, 0, 220)
 flingContainer.BackgroundTransparency = 1
@@ -571,4 +572,4 @@ local function showBadge(text)
     local badge = Instance.new("TextLabel")
     badge.Size = UDim2.new(0, 220, 0, 50)
     badge.Position = UDim2.new(0.5, -110, 0.1, 0)
-    badge.BackgroundColor3 = Color3.fromRGB(55, 155
+    badge.BackgroundColor3 = Color3.fromRGB(55, 155 
