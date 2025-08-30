@@ -1,20 +1,74 @@
+--== Notification GUI Creation (KAROX Style) ==--
+if game.Players.LocalPlayer.PlayerGui:FindFirstChild("KAROXNotice") then
+    game.Players.LocalPlayer.PlayerGui.KAROXNotice:Destroy()
+end
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "KAROXNotice"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = game.Players.LocalPlayer.PlayerGui
+
+local frame = Instance.new("Frame")
+frame.Name = "NotificationFrame"
+frame.Size = UDim2.new(0, 380, 0, 90)
+frame.Position = UDim2.new(1, -400, 1, -110)
+frame.BackgroundColor3 = Color3.fromRGB(37, 37, 37)
+frame.BorderSizePixel = 0
+frame.BackgroundTransparency = 0.05
+frame.AnchorPoint = Vector2.new(0,0)
+frame.Parent = screenGui
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 12)
+corner.Parent = frame
+
+local icon = Instance.new("ImageLabel")
+icon.Size = UDim2.new(0, 32, 0, 32)
+icon.Position = UDim2.new(0, 16, 0, 16)
+icon.BackgroundTransparency = 1
+icon.Image = "rbxassetid://6031154870" -- Bell icon asset
+icon.Parent = frame
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -60, 0, 22)
+title.Position = UDim2.new(0, 56, 0, 16)
+title.BackgroundTransparency = 1
+title.Font = Enum.Font.GothamBold
+title.Text = "KAROX:"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.TextSize = 20
+title.Parent = frame
+
+local desc = Instance.new("TextLabel")
+desc.Size = UDim2.new(1, -32, 1, -48)
+desc.Position = UDim2.new(0, 16, 0, 38)
+desc.BackgroundTransparency = 1
+desc.Font = Enum.Font.Gotham
+desc.Text = "[KAROX COMBINED ANTI-CHEAT REMOVER IS ACTIVATED. PLEASE WAIT]"
+desc.TextColor3 = Color3.fromRGB(230, 230, 230)
+desc.TextXAlignment = Enum.TextXAlignment.Left
+desc.TextYAlignment = Enum.TextYAlignment.Top
+desc.TextSize = 16
+desc.TextWrapped = true
+desc.Parent = frame
+
+game:GetService("Debris"):AddItem(screenGui, 8)
+
 --== Local Functions and Variables ==--
 local getinfo = getinfo or debug.getinfo
 local DEBUG = false
 local Hooked = {}
 
 local Detected, Kill
-
 setthreadidentity(2)
 
 for i, v in getgc(true) do
     if typeof(v) == "table" then
         local DetectFunc = rawget(v, "Detected")
         local KillFunc = rawget(v, "Kill")
-    
         if typeof(DetectFunc) == "function" and not Detected then
             Detected = DetectFunc
-            
             local Old; Old = hookfunction(Detected, function(Action, Info, NoCrash)
                 if Action ~= "_" then
                     if DEBUG then
@@ -25,7 +79,6 @@ for i, v in getgc(true) do
             end)
             table.insert(Hooked, Detected)
         end
-
         if rawget(v, "Variables") and rawget(v, "Process") and typeof(KillFunc) == "function" and not Kill then
             Kill = KillFunc
             local Old; Old = hookfunction(Kill, function(Info)
@@ -41,9 +94,7 @@ end
 local Old; Old = hookfunction(getrenv().debug.info, newcclosure(function(...)
     local LevelOrFunc, Info = ...
     if Detected and LevelOrFunc == Detected then
-        if DEBUG then
-            warn(`zins | adonis bypassed`)
-        end
+        if DEBUG then warn(`zins | adonis bypassed`) end
         return coroutine.yield(coroutine.running())
     end
     return Old(...)
@@ -87,12 +138,3 @@ end)
 pcall(function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/Exunys/Anti-Kick/main/Anti-Kick.lua"))()
 end)
-
---== In-game Notification ==--
-local StarterGui = game:GetService("StarterGui")
-StarterGui:SetCore("SendNotification", {
-    Title = "KCR:Started",
-    Text = "[KAROX COMBINED ANTI-CHEAT REMOVER IS ACTIVATED. PLEASE WAIT]",
-    Icon = "",
-    Duration = 7 -- seconds the notice will show
-})
