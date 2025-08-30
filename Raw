@@ -1,8 +1,10 @@
 local UserInputService = game:GetService("UserInputService")
-local CoreGui = game:GetService("CoreGui")
 local PlayerService = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = PlayerService.LocalPlayer
+
+-- Wait for PlayerGui to exist (important)
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
 -- Check if mobile
 local isMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
@@ -138,7 +140,7 @@ end
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = isMobile and "BypasserDebugGui_Mobile" or "BypasserDebugGui"
 ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = CoreGui
+ScreenGui.Parent = PlayerGui
 
 local Frame = Instance.new("Frame")
 
@@ -552,5 +554,4 @@ btnLoopFlingAll.MouseButton1Click:Connect(function()
     else
         loopFlingAll = true
         loopFlingTarget = false
-        startLoopFlingAll()
-        btnLoopFlingAll.Text = "
+ 
