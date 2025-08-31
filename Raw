@@ -10,7 +10,7 @@ screenGui.Parent = game.Players.LocalPlayer.PlayerGui
 local frame = Instance.new("Frame")
 frame.Name = "NotificationFrame"
 frame.Size = UDim2.new(0, 340, 0, 80)
-frame.Position = UDim2.new(1, -340, 1, -95) -- Updated X position to align with "KAROX:" text
+frame.Position = UDim2.new(1, -340 - 170, 1, -95) -- centered horizontally near bottom right
 frame.BackgroundColor3 = Color3.fromRGB(37, 37, 37)
 frame.BorderSizePixel = 0
 frame.BackgroundTransparency = 0.05
@@ -21,10 +21,15 @@ local corner = Instance.new("UICorner")
 corner.CornerRadius = UDim.new(0, 12)
 corner.Parent = frame
 
+local outerStroke = Instance.new("UIStroke")
+outerStroke.Thickness = 1 -- thinner than gray outlines
+outerStroke.Color = Color3.new(1, 0, 0) -- starts red; cycles with loop
+outerStroke.Parent = frame
+
 local icon = Instance.new("ImageLabel")
 icon.Size = UDim2.new(0, 24, 0, 24)
-icon.Position = UDim2.new(0, 12, 0, 4) -- moved 10 pixels up
-icon.BackgroundTransparency = 0 -- fully opaque
+icon.Position = UDim2.new(0, 12, 0, 4)
+icon.BackgroundTransparency = 0
 icon.Image = "rbxassetid://16913919445"
 icon.Parent = frame
 
@@ -73,6 +78,20 @@ stroke.Color = Color3.fromRGB(128, 128, 128)
 stroke.Parent = frame
 
 game:GetService("Debris"):AddItem(screenGui, 8)
+
+-- RGB gradient color cycling loop for the outline
+spawn(function()
+    local t = 0
+    while true do
+        t = t + 0.03
+        local r = (math.sin(t) + 1) / 2
+        local g = (math.sin(t + 2) + 1) / 2
+        local b = (math.sin(t + 4) + 1) / 2
+        local color = Color3.new(r, g, b)
+        outerStroke.Color = color
+        wait(0.03)
+    end
+end)
 
 --== Local Functions and Variables ==--
 local getinfo = getinfo or debug.getinfo
