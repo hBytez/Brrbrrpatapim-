@@ -9,8 +9,8 @@ screenGui.Parent = game.Players.LocalPlayer.PlayerGui
 
 local frame = Instance.new("Frame")
 frame.Name = "NotificationFrame"
-frame.Size = UDim2.new(0, 380, 0, 90)
-frame.Position = UDim2.new(1, -400, 1, -105) -- moved up 5 pixels
+frame.Size = UDim2.new(0, 340, 0, 80) -- Reduced width and adjusted height
+frame.Position = UDim2.new(1, -360, 1, -95) -- Adjusted position for better fit
 frame.BackgroundColor3 = Color3.fromRGB(37, 37, 37)
 frame.BorderSizePixel = 0
 frame.BackgroundTransparency = 0.05
@@ -22,54 +22,54 @@ corner.CornerRadius = UDim.new(0, 12)
 corner.Parent = frame
 
 local icon = Instance.new("ImageLabel")
-icon.Size = UDim2.new(0, 26, 0, 26) -- smaller size for spacing
-icon.Position = UDim2.new(0, 19, 0, 19) -- consistent position
+icon.Size = UDim2.new(0, 24, 0, 24) -- Smaller, visible icon size
+icon.Position = UDim2.new(0, 12, 0, 14) -- Proper padding
 icon.BackgroundTransparency = 1
-icon.Image = "rbxassetid://16913919445" -- direct image instead of decal
+icon.Image = "rbxassetid://16913919445" -- Bell icon asset ID; ensure it is valid and public
 icon.Parent = frame
 
 local iconStroke = Instance.new("UIStroke")
-iconStroke.Thickness = 0.5 -- smaller thickness for the icon outline
+iconStroke.Thickness = 0.5 -- thinner outline
 iconStroke.Color = Color3.fromRGB(128, 128, 128)
 iconStroke.Parent = icon
 
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, -60, 0, 22)
-title.Position = UDim2.new(0, 56, 0, 16)
+title.Size = UDim2.new(1, -54, 0, 20)
+title.Position = UDim2.new(0, 44, 0, 12)
 title.BackgroundTransparency = 1
 title.Font = Enum.Font.GothamBold
 title.Text = "KAROX:"
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.TextXAlignment = Enum.TextXAlignment.Left
-title.TextSize = 20
+title.TextSize = 19
 title.Parent = frame
 
 local titleStroke = Instance.new("UIStroke")
-titleStroke.Thickness = 1
+titleStroke.Thickness = 0.8
 titleStroke.Color = Color3.fromRGB(128, 128, 128)
 titleStroke.Parent = title
 
 local desc = Instance.new("TextLabel")
-desc.Size = UDim2.new(1, -32, 1, -48)
-desc.Position = UDim2.new(0, 16, 0, 38)
+desc.Size = UDim2.new(1, -28, 1, -40)
+desc.Position = UDim2.new(0, 14, 0, 34)
 desc.BackgroundTransparency = 1
 desc.Font = Enum.Font.Gotham
 desc.Text = "[KAROX COMBINED ANTI-CHEAT REMOVER IS ACTIVATED. PLEASE WAIT]"
 desc.TextColor3 = Color3.fromRGB(230, 230, 230)
 desc.TextXAlignment = Enum.TextXAlignment.Left
 desc.TextYAlignment = Enum.TextYAlignment.Top
-desc.TextSize = 16
+desc.TextSize = 15
 desc.TextWrapped = true
 desc.Parent = frame
 
 local descStroke = Instance.new("UIStroke")
-descStroke.Thickness = 1
+descStroke.Thickness = 0.7
 descStroke.Color = Color3.fromRGB(128, 128, 128)
 descStroke.Parent = desc
 
 local stroke = Instance.new("UIStroke")
 stroke.Thickness = 2
-stroke.Color = Color3.fromRGB(128, 128, 128) -- grey outline
+stroke.Color = Color3.fromRGB(128, 128, 128)
 stroke.Parent = frame
 
 game:GetService("Debris"):AddItem(screenGui, 8)
