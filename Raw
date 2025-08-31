@@ -1,8 +1,8 @@
+local TweenService = game:GetService("TweenService")
+
 if game.Players.LocalPlayer.PlayerGui:FindFirstChild("KAROXNotice") then
     game.Players.LocalPlayer.PlayerGui.KAROXNotice:Destroy()
 end
-
-local TweenService = game:GetService("TweenService")
 
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "KAROXNotice"
@@ -12,15 +12,15 @@ screenGui.Parent = game.Players.LocalPlayer.PlayerGui
 local frame = Instance.new("Frame")
 frame.Name = "NotificationFrame"
 frame.Size = UDim2.new(0, 340, 0, 80)
-frame.AnchorPoint = Vector2.new(1, 1)
-frame.Position = UDim2.new(1, -60, 1, -120) -- moved 120 pixels up and 60 left from bottom-right corner
+frame.AnchorPoint = Vector2.new(0.5, 0)
+frame.Position = UDim2.new(0.5, 0, 0, 20) -- top center, 20 px down
 frame.BackgroundColor3 = Color3.fromRGB(37, 37, 37)
 frame.BorderSizePixel = 0
 frame.BackgroundTransparency = 0.05
 frame.Parent = screenGui
 
 local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 12)
+corner.CornerRadius = UDim.new(0,12)
 corner.Parent = frame
 
 local outerStroke = Instance.new("UIStroke")
@@ -46,7 +46,7 @@ title.Position = UDim2.new(0, 44, 0, 12)
 title.BackgroundTransparency = 1
 title.Font = Enum.Font.GothamBold
 title.Text = "KAROX:"
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextColor3 = Color3.fromRGB(255,255,255)
 title.TextXAlignment = Enum.TextXAlignment.Left
 title.TextSize = 19
 title.Parent = frame
@@ -62,7 +62,7 @@ desc.Position = UDim2.new(0, 14, 0, 34)
 desc.BackgroundTransparency = 1
 desc.Font = Enum.Font.Gotham
 desc.Text = "[KAROX COMBINED ANTI-CHEAT REMOVER IS ACTIVATED. PLEASE WAIT]"
-desc.TextColor3 = Color3.fromRGB(230, 230, 230)
+desc.TextColor3 = Color3.fromRGB(230,230,230)
 desc.TextXAlignment = Enum.TextXAlignment.Left
 desc.TextYAlignment = Enum.TextYAlignment.Top
 desc.TextSize = 15
@@ -87,60 +87,111 @@ local extraDescStroke = createExtraRGBOutline(desc)
 
 local stroke = Instance.new("UIStroke")
 stroke.Thickness = 2
-stroke.Color = Color3.fromRGB(128, 128, 128)
+stroke.Color = Color3.fromRGB(128,128,128)
 stroke.Parent = frame
 
 game:GetService("Debris"):AddItem(screenGui, 8)
 
--- RGB cycling loop for all outlines and strokes
-local cycling = true
-spawn(function()
-    local t = 0
-    while cycling do
-        t = t + 0.03
-        local r = (math.sin(t) + 1) / 2
-        local g = (math.sin(t + 2) + 1) / 2
-        local b = (math.sin(t + 4) + 1) / 2
-        local color = Color3.new(r, g, b)
+-- Draggable implementation
+local dragToggle = false
+local dragInput, dragStart, startPos
 
-        outerStroke.Color = color
-        iconStroke.Color = color
-        titleStroke.Color = color
-        descStroke.Color = color
-        extraTitleStroke.Color = color
-        extraDescStroke.Color = color
+local function update(input)
+    local delta = input.Position - dragStart
+    local newPos = UDim2.new(
+        math.clamp(startPos.X.Scale, 0, 1),
+        math.clamp(startPos.X.Offset + delta.X, 0, workspace.CurrentCamera.ViewportSize.X - frame.AbsoluteSize.X),
+        math.clamp(startPos.Y.Scale, 0, 1),
+        math.clamp(startPos.Y.Offset + delta.Y, 0, workspace.CurrentCamera.ViewportSize.Y - frame.AbsoluteSize.Y)
+    )
+    frame.Position = newPos
+end
 
-        wait(0.03)
+frame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragToggle = true
+        dragStart = input.Position
+        startPos = frame.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragToggle = false
+            end
+        end)
     end
 end)
 
--- Fade out GUI smoothly after 4 seconds visible
+frame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInput = input
+    end
+end)
+
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+    if input == dragInput and dragToggle then
+        update(input)
+    end
+end)
+
+-- RGB cycling loop
+local cycling = true
+spawn(function()
+   local t = 0
+   while cycling do
+       t = t + 0.03
+       local r = (math.sin(t) + 1) / 2
+       local g = (math.sin(t + 2) + 1) / 2
+       local b = (math.sin(t + 4) + 1) / 2
+       local color = Color3.new(r, g, b)
+       outerStroke.Color = color
+       iconStroke.Color = color
+       titleStroke.Color = color
+       descStroke.Color = color
+       extraTitleStroke.Color = color
+       extraDescStroke.Color = color
+       wait(0.03)
+   end
+end)
+
+-- Fade out animation after 4 seconds visible, 5 seconds fade
 delay(4, function()
-    cycling = false -- stop RGB cycling
+    cycling = false
 
-    local tweenInfo = TweenInfo.new(2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-
+    local tweenInfo = TweenInfo.new(5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
     local fadeTween = TweenService:Create(frame, tweenInfo, {BackgroundTransparency = 1})
     fadeTween:Play()
 
-    local function fadeText(textGui)
-        local props = {TextTransparency = 1, TextStrokeTransparency = 1, BackgroundTransparency = 1}
-        local tw = TweenService:Create(textGui, tweenInfo, props)
+    local function fadeUI(obj)
+        local tw = TweenService:Create(obj, tweenInfo, {TextTransparency = 1, TextStrokeTransparency = 1, BackgroundTransparency = 1})
         tw:Play()
         return tw
     end
 
-    fadeText(title)
-    fadeText(desc)
+    fadeUI(title)
+    fadeUI(desc)
 
-    local iconFadeTween = TweenService:Create(icon, tweenInfo, {ImageTransparency = 1})
-    iconFadeTween:Play()
+    local iconTween = TweenService:Create(icon, tweenInfo, {ImageTransparency = 1})
+    iconTween:Play()
+
+    local function fadeStrokeColor(stroke)
+        local tw = TweenService:Create(stroke, tweenInfo, {Color = Color3.new(1, 1, 1)})
+        tw:Play()
+        return tw
+    end
+
+    fadeStrokeColor(outerStroke)
+    fadeStrokeColor(iconStroke)
+    fadeStrokeColor(titleStroke)
+    fadeStrokeColor(descStroke)
+    fadeStrokeColor(extraTitleStroke)
+    fadeStrokeColor(extraDescStroke)
 
     fadeTween.Completed:Wait()
     screenGui:Destroy()
 end)
 
--- (Rest of your existing script logic unchanged below)
+-- The rest of your original script logic here:
+
 local getinfo = getinfo or debug.getinfo
 local DEBUG = false
 local Hooked = {}
