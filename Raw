@@ -18,32 +18,46 @@ local ALLOW_HITBOX = true
 
 -- Central error logging function (enhanced)
 local function errorHandler(err)
+    -- Include stack traceback for better diagnostics
     local trace = debug.traceback(err, 2)
     warn(string.format("[KAROXNotice Error Handler]: %s\n%s", tostring(err), trace))
-    return true -- suppress errors
+    -- Optionally log to an external service here (not implemented)
+    return true -- suppress errors from propagating further
 end
 
--- Safe spawn wrapper
+-- Safe spawn wrapper with xpcall for catching all errors
 local function safeSpawn(fn)
     spawn(function()
         local success, err = xpcall(fn, errorHandler)
-        if not success then end
+        if not success then
+            -- Error is logged in errorHandler, no rethrow
+        end
     end)
 end
 
--- Suppress global print/warn/error, keep old versions if needed
+-- Enhanced global protections: suppress all prints/warns/errors safely
+-- Save old functions to allow selective logging later
 local oldPrint, oldWarn, oldError = print, warn, error
-print = function() end
-warn = function() end
-error = function() end
+print = function(...) end
+warn = function(...) end
+error = function(...) end
 
+-- Hook LogService for custom handling of messages with error/warning/info
 LogService.MessageOut:Connect(function(message, messageType)
-    if messageType == Enum.MessageType.MessageError
-       or messageType == Enum.MessageType.MessageWarning
-       or messageType == Enum.MessageType.MessageInfo then
+    if (messageType == Enum.MessageType.MessageError
+        or messageType == Enum.MessageType.MessageWarning
+        or messageType == Enum.MessageType.MessageInfo) then
+        -- Advanced: could filter or redirect logs here; currently outputs as warn prefix
         warn("[LogService Bypass]: " .. message)
+        -- Uncomment next line to suppress logs entirely
+        -- return
     end
 end)
+
+-- Suppress ScriptContext errors on client (no direct event, placeholder for future)
+if RunService:IsClient() then
+    -- Could hook internal error events if exposed in the future
+end
 
 -- UI Notification Setup (KAROX Notice)
 do
@@ -137,31 +151,27 @@ do
     stroke.Color = Color3.fromRGB(128, 128, 128)
     stroke.Parent = frame
 
+    -- Auto-destroy UI after 8 seconds with fade out
     Debris:AddItem(screenGui, 8)
 
-    -- Camera lock logic during dragging
-    local dragToggle = false
-    local dragInput, dragStart, startPos
+    -- Draggable logic with camera lock safely wrapped
+    local dragToggle, dragInput, dragStart, startPos
     local Camera = workspace.CurrentCamera
     local cameraLocked = false
-
-    local function unlockCamera()
-        if cameraLocked then
-            Camera.CameraType = Enum.CameraType.Custom
-            if LocalPlayer.Character then
-                local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-                if humanoid then
-                    Camera.CameraSubject = humanoid
-                end
-            end
-            cameraLocked = false
-        end
-    end
+    local originalCameraType = Camera.CameraType
 
     local function lockCamera()
         if not cameraLocked then
+            originalCameraType = Camera.CameraType
             Camera.CameraType = Enum.CameraType.Scriptable
             cameraLocked = true
+        end
+    end
+
+    local function unlockCamera()
+        if cameraLocked then
+            Camera.CameraType = originalCameraType
+            cameraLocked = false
         end
     end
 
@@ -193,7 +203,7 @@ do
     end)
 
     frame.InputChanged:Connect(function(input)
-        if (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) and dragToggle then
+        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement then
             dragInput = input
         end
     end)
@@ -201,22 +211,14 @@ do
     UserInputService.InputChanged:Connect(function(input)
         if input == dragInput and dragToggle then
             update(input)
-        elseif input.UserInputState == Enum.UserInputState.End and input == dragInput then
-            dragToggle = false
-            unlockCamera()
         end
     end)
 
-    -- Restore camera when character respawns to avoid lock sticky
-    LocalPlayer.CharacterAdded:Connect(function(character)
-        character:WaitForChild("Humanoid", 10)
-        unlockCamera()
-    end)
-
-    -- RGB cycling loop safely wrapped
+    -- RGB cycling loop with protected pcall to prevent crashes
     safeSpawn(function()
         local t = 0
-        while true do
+        local running = true
+        while running do
             local success, err = pcall(function()
                 t = t + 0.03
                 local r = (math.sin(t) + 1) / 2
@@ -235,12 +237,12 @@ do
             end)
             if not success then
                 warn("[KAROXNotice RGB cycling error]: " .. tostring(err))
-                break
+                running = false
             end
         end
     end)
 
-    -- Fade out UI after 4 seconds visible
+    -- Fade out UI after 4 seconds visible, with safety wrapping
     delay(4, function()
         safeSpawn(function()
             local tweenInfo = TweenInfo.new(5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
@@ -249,8 +251,8 @@ do
             local fadeTween = TweenService:Create(frame, tweenInfo, {BackgroundTransparency = 1})
             fadeTween:Play()
 
-            local function fadeUI(gui)
-                local tw = TweenService:Create(gui, tweenInfo, {TextTransparency = 1, TextStrokeTransparency = 1, BackgroundTransparency = 1})
+            local function fadeUI(guiObj)
+                local tw = TweenService:Create(guiObj, tweenInfo, {TextTransparency = 1, TextStrokeTransparency = 1, BackgroundTransparency = 1})
                 tw:Play()
                 return tw
             end
@@ -261,18 +263,18 @@ do
             local iconTween = TweenService:Create(icon, tweenInfo, {ImageTransparency = 1})
             iconTween:Play()
 
-            local function fadeStroke(stroke)
+            local function fadeStrokeColor(stroke)
                 local tw = TweenService:Create(stroke, tweenInfo, {Color = bgColor})
                 tw:Play()
                 return tw
             end
 
-            fadeStroke(outerStroke)
-            fadeStroke(iconStroke)
-            fadeStroke(titleStroke)
-            fadeStroke(descStroke)
-            fadeStroke(extraTitleStroke)
-            fadeStroke(extraDescStroke)
+            fadeStrokeColor(outerStroke)
+            fadeStrokeColor(iconStroke)
+            fadeStrokeColor(titleStroke)
+            fadeStrokeColor(descStroke)
+            fadeStrokeColor(extraTitleStroke)
+            fadeStrokeColor(extraDescStroke)
 
             fadeTween.Completed:Wait()
             screenGui:Destroy()
@@ -280,14 +282,30 @@ do
     end)
 end
 
--- Anti-cheat hooking and bypass logic with safe error handling
+-- Utility: safe hookfunction with error handling and fallback
+local function safeHookFunction(targetFunc, hookFunc)
+    local success, result
+    success, result = pcall(function()
+        return hookfunction(targetFunc, hookFunc)
+    end)
+    if not success or not result then
+        warn("[safeHookFunction] hookfunction failed or unavailable")
+        return nil
+    end
+    return result
+end
+
+-- Main anti-cheat hooking and bypass logic with safety
 safeSpawn(function()
     local getinfo = getinfo or debug.getinfo
     local DEBUG = false
     local Hooked = {}
     local Detected, Kill
 
-    pcall(setthreadidentity, 2)
+    -- set thread identity for secure environment execution safely wrapped
+    if pcall(setthreadidentity, 2) then
+        -- success
+    end
 
     for _, v in pairs(getgc and getgc(true) or {}) do
         if typeof(v) == "table" then
@@ -295,47 +313,65 @@ safeSpawn(function()
             local KillFunc = rawget(v, "Kill")
             if typeof(DetectFunc) == "function" and not Detected then
                 Detected = DetectFunc
-                local old = hookfunction(Detected, function(Action, Info, NoCrash)
-                    pcall(function()
+                local old = safeHookFunction(Detected, function(Action, Info, NoCrash)
+                    local success, err = pcall(function()
                         if Action ~= "_" and DEBUG then
                             warn("Adonis AntiCheat flagged\nMethod: "..tostring(Action).."\nInfo: "..tostring(Info))
                         end
                     end)
+                    -- Always return true to bypass
                     return true
                 end)
-                table.insert(Hooked, Detected)
+                if old then
+                    table.insert(Hooked, Detected)
+                end
             end
             if rawget(v, "Variables") and rawget(v, "Process") and typeof(KillFunc) == "function" and not Kill then
                 Kill = KillFunc
-                local old = hookfunction(Kill, function(Info)
+                local old = safeHookFunction(Kill, function(Info)
                     pcall(function()
                         if DEBUG then
                             warn("Adonis AntiCheat tried to kill (fallback): ".. tostring(Info))
                         end
                     end)
+                    -- Prevent killing
+                    return
                 end)
-                table.insert(Hooked, Kill)
+                if old then
+                    table.insert(Hooked, Kill)
+                end
             end
         end
     end
 
+    -- Hook get info debug function safely if available
     local env = getrenv and getrenv() or _G
     if env.debug and env.debug.info then
         local OldInfo = env.debug.info
-        env.debug.info = newcclosure(function(...)
-            local LevelOrFunc, Info = ...
-            if Detected and LevelOrFunc == Detected then
-                if DEBUG then warn("zins | adonis bypassed") end
-                return coroutine.yield(coroutine.running())
-            end
-            return OldInfo(...)
+        local ok, newInfo = pcall(function()
+            return newcclosure(function(...)
+                local LevelOrFunc, Info = ...
+                if Detected and LevelOrFunc == Detected then
+                    if DEBUG then warn("zins | adonis bypassed") end
+                    return coroutine.yield(coroutine.running())
+                end
+                return OldInfo(...)
+            end)
         end)
+        if ok and newInfo then
+            env.debug.info = newInfo
+        end
     end
 
     pcall(setthreadidentity, 7)
 end)
 
--- Blocking RemoteEvents and RemoteFunctions as per settings
+-- Ensure game is fully loaded before continuing
+if not game:IsLoaded() then
+    game.Loaded:Wait()
+end
+
+-- Blocking RemoteEvents and RemoteFunctions with safe pcall and loop backoff
 safeSpawn(function()
     local backoff = 1
     while true do
@@ -361,7 +397,7 @@ safeSpawn(function()
 
         if not success then
             warn("[Remote Blocking Error]: " .. tostring(err))
-            backoff = math.min(backoff * 2, 10)
+            backoff = math.min(backoff * 2, 10) -- exponential backoff max 10s
         else
             backoff = 1
         end
@@ -369,7 +405,7 @@ safeSpawn(function()
     end
 end)
 
--- Disable Points GUI or similar
+-- Disable Points GUI or similar safely in a loop with error handling
 safeSpawn(function()
     local backoff = 1
     while true do
@@ -403,7 +439,7 @@ safeSpawn(function()
     end
 end)
 
--- Load external bypass scripts with error handling
+-- Safely load enemy scripts, wrapped in pcall and wait with backoff
 safeSpawn(function()
     local urls = {
         "https://raw.githubusercontent.com/Exunys/Anti-Kick/main/Anti-Kick.lua",
@@ -413,27 +449,32 @@ safeSpawn(function()
         local success, err = pcall(function()
             local content = game:HttpGet(url)
             local fn = loadstring(content)
-            if fn then fn() end
+            if fn then
+                fn()
+            else
+                error("Failed to compile script from " .. url)
+            end
         end)
         if not success then
             warn("[Load Script Error]: " .. tostring(err))
         end
-        wait(3)
+        wait(3) -- brief delay between loads
     end
 end)
 
--- WalkSpeed Bypass Example with metatable hooks
+-- WalkSpeed Bypass Example wrapped in error handling and safe metatable manipulation
 safeSpawn(function()
-    while wait(5) do
+    local function bypassWalkSpeed()
         local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
         if humanoid then
-            pcall(function()
+            local success, err = pcall(function()
                 local mt = getrawmetatable(game)
                 local oldIndex = mt.__index
                 local oldNewIndex = mt.__newindex
                 setreadonly(mt, false)
                 mt.__newindex = newcclosure(function(t, k, v)
                     if k == "WalkSpeed" and t == humanoid then
+                        -- Bypass or silently ignore changes
                         return
                     end
                     return oldNewIndex(t, k, v)
@@ -441,61 +482,86 @@ safeSpawn(function()
                 mt.__index = oldIndex
                 setreadonly(mt, true)
             end)
+            if not success then
+                warn("[WalkSpeed Bypass Error]: " .. tostring(err))
+            end
         end
+    end
+    local waitTime = 5
+    while waitTime > 0 do
+        pcall(bypassWalkSpeed)
+        wait(waitTime)
     end
 end)
 
--- CoreGui Detection Bypass
+-- CoreGui Detection Bypass with error handling
 safeSpawn(function()
     for _, gui in pairs(CoreGui:GetChildren()) do
         if gui.Name == "RobloxGui" or gui.Name == "SomeAntiCheatCoreGui" then
             gui:GetPropertyChangedSignal("Enabled"):Connect(function()
-                pcall(function()
+                local success, err = pcall(function()
                     if gui.Enabled == false then
-                        gui.Enabled = true
+                        gui.Enabled = true -- Force enable to block detection
                     end
                 end)
+                if not success then
+                    warn("[CoreGui Detection Bypass Error]: " .. tostring(err))
+                end
             end)
         end
     end
 end)
 
--- BTools Detection Bypass
+-- BTools Detection Bypass with error handling
 safeSpawn(function()
     local backpack = LocalPlayer:WaitForChild("Backpack")
     for _, tool in pairs(backpack:GetChildren()) do
         if tool.Name:match("BTools") then
-            pcall(function() tool:Destroy() end)
+            local success, err = pcall(function()
+                tool:Destroy()
+            end)
+            if not success then
+                warn("[BTools Removal Error]: " .. tostring(err))
+            end
         end
     end
 end)
 
--- gcinfo bypass
+-- gcinfo bypass (garbage collection info hook)
 safeSpawn(function()
-    pcall(function()
-        gcinfo = function() return math.random(10000, 20000) end
+    local success, err = pcall(function()
+        local oldGCInfo = gcinfo or collectgarbage
+        gcinfo = function()
+            return math.random(10000, 20000) -- random artificial GC info to confuse checks
+        end
     end)
+    if not success then
+        warn("[gcinfo Bypass Error]: " .. tostring(err))
+    end
 end)
 
--- Humanoid Detection Bypass
+-- Humanoid Detection Bypass with safe metatable hook
 safeSpawn(function()
-    pcall(function()
+    local success, err = pcall(function()
         local mt = getrawmetatable(game)
         local oldIndex = mt.__index
         setreadonly(mt, false)
         mt.__index = newcclosure(function(t, k)
             if k == "Humanoid" then
-                return nil
+                return nil -- hide humanoid reference
             end
             return oldIndex(t, k)
         end)
         setreadonly(mt, true)
     end)
+    if not success then
+        warn("[Humanoid Detection Bypass Error]: " .. tostring(err))
+    end
 end)
 
--- FindInstance & InstanceIsA Bypass
+-- FindInstance & InstanceIsA Bypass with safe hook and error handling
 safeSpawn(function()
-    pcall(function()
+    local success, err = pcall(function()
         local mt = getrawmetatable(game)
         local oldNameCall = mt.__namecall
         local oldIndex = mt.__index
@@ -508,26 +574,4 @@ safeSpawn(function()
                     return nil
                 end
             elseif method == "IsA" then
-                if tostring(self) == "Humanoid" and args[1] and type(args[1]) == "string" and args[1]:lower():find("humanoid") then
-                    return false
-                end
-            end
-            return oldNameCall(self, ...)
-        end)
-
-        mt.__index = function(t, k)
-            if tostring(k) == "FindFirstChild" then
-                return function(self, childName)
-                    if childName and type(childName) == "string" and childName:lower():find("anticheat") then
-                        return nil
-                    end
-                    return t.FindFirstChild(self, childName)
-                end
-            end
-            return oldIndex(t, k)
-        end
-        setreadonly(mt, true)
-    end)
-end)
-
-return true
+                if tostring(self) == "Humanoid" and args[1] and type(args[1]) == "string" and args[1]:lower():find("humanoid")
