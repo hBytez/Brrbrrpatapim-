@@ -10,7 +10,7 @@ screenGui.Parent = game.Players.LocalPlayer.PlayerGui
 local frame = Instance.new("Frame")
 frame.Name = "NotificationFrame"
 frame.Size = UDim2.new(0, 340, 0, 80)
-frame.Position = UDim2.new(1, -360, 1, -95)
+frame.Position = UDim2.new(1, -340, 1, -95) -- Updated X position to align with "KAROX:" text
 frame.BackgroundColor3 = Color3.fromRGB(37, 37, 37)
 frame.BorderSizePixel = 0
 frame.BackgroundTransparency = 0.05
@@ -24,7 +24,7 @@ corner.Parent = frame
 local icon = Instance.new("ImageLabel")
 icon.Size = UDim2.new(0, 24, 0, 24)
 icon.Position = UDim2.new(0, 12, 0, 4) -- moved 10 pixels up
-icon.BackgroundTransparency = 0 -- no transparency
+icon.BackgroundTransparency = 0 -- fully opaque
 icon.Image = "rbxassetid://16913919445"
 icon.Parent = frame
 
