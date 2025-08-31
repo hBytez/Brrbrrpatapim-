@@ -1,4 +1,5 @@
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 
 if game.Players.LocalPlayer.PlayerGui:FindFirstChild("KAROXNotice") then
     game.Players.LocalPlayer.PlayerGui.KAROXNotice:Destroy()
@@ -13,14 +14,14 @@ local frame = Instance.new("Frame")
 frame.Name = "NotificationFrame"
 frame.Size = UDim2.new(0, 340, 0, 80)
 frame.AnchorPoint = Vector2.new(0.5, 0)
-frame.Position = UDim2.new(0.5, 0, 0, 20) -- top center, 20 px down
+frame.Position = UDim2.new(0.5, 0, 0, 20) -- Top center, 20px down
 frame.BackgroundColor3 = Color3.fromRGB(37, 37, 37)
 frame.BorderSizePixel = 0
 frame.BackgroundTransparency = 0.05
 frame.Parent = screenGui
 
 local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0,12)
+corner.CornerRadius = UDim.new(0, 12)
 corner.Parent = frame
 
 local outerStroke = Instance.new("UIStroke")
@@ -46,7 +47,7 @@ title.Position = UDim2.new(0, 44, 0, 12)
 title.BackgroundTransparency = 1
 title.Font = Enum.Font.GothamBold
 title.Text = "KAROX:"
-title.TextColor3 = Color3.fromRGB(255,255,255)
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.TextXAlignment = Enum.TextXAlignment.Left
 title.TextSize = 19
 title.Parent = frame
@@ -62,7 +63,7 @@ desc.Position = UDim2.new(0, 14, 0, 34)
 desc.BackgroundTransparency = 1
 desc.Font = Enum.Font.Gotham
 desc.Text = "[KAROX COMBINED ANTI-CHEAT REMOVER IS ACTIVATED. PLEASE WAIT]"
-desc.TextColor3 = Color3.fromRGB(230,230,230)
+desc.TextColor3 = Color3.fromRGB(230, 230, 230)
 desc.TextXAlignment = Enum.TextXAlignment.Left
 desc.TextYAlignment = Enum.TextYAlignment.Top
 desc.TextSize = 15
@@ -87,14 +88,32 @@ local extraDescStroke = createExtraRGBOutline(desc)
 
 local stroke = Instance.new("UIStroke")
 stroke.Thickness = 2
-stroke.Color = Color3.fromRGB(128,128,128)
+stroke.Color = Color3.fromRGB(128, 128, 128)
 stroke.Parent = frame
 
 game:GetService("Debris"):AddItem(screenGui, 8)
 
--- Draggable implementation
+-- Draggable logic with camera lock
 local dragToggle = false
 local dragInput, dragStart, startPos
+local Camera = workspace.CurrentCamera
+local cameraLocked = false
+local originalCameraType = Camera.CameraType
+
+local function lockCamera()
+    if not cameraLocked then
+        originalCameraType = Camera.CameraType
+        Camera.CameraType = Enum.CameraType.Scriptable
+        cameraLocked = true
+    end
+end
+
+local function unlockCamera()
+    if cameraLocked then
+        Camera.CameraType = originalCameraType
+        cameraLocked = false
+    end
+end
 
 local function update(input)
     local delta = input.Position - dragStart
@@ -112,10 +131,12 @@ frame.InputBegan:Connect(function(input)
         dragToggle = true
         dragStart = input.Position
         startPos = frame.Position
+        lockCamera()
 
         input.Changed:Connect(function()
             if input.UserInputState == Enum.UserInputState.End then
                 dragToggle = false
+                unlockCamera()
             end
         end)
     end
@@ -127,7 +148,7 @@ frame.InputChanged:Connect(function(input)
     end
 end)
 
-game:GetService("UserInputService").InputChanged:Connect(function(input)
+UserInputService.InputChanged:Connect(function(input)
     if input == dragInput and dragToggle then
         update(input)
     end
@@ -136,33 +157,36 @@ end)
 -- RGB cycling loop
 local cycling = true
 spawn(function()
-   local t = 0
-   while cycling do
-       t = t + 0.03
-       local r = (math.sin(t) + 1) / 2
-       local g = (math.sin(t + 2) + 1) / 2
-       local b = (math.sin(t + 4) + 1) / 2
-       local color = Color3.new(r, g, b)
-       outerStroke.Color = color
-       iconStroke.Color = color
-       titleStroke.Color = color
-       descStroke.Color = color
-       extraTitleStroke.Color = color
-       extraDescStroke.Color = color
-       wait(0.03)
-   end
+    local t = 0
+    while cycling do
+        t = t + 0.03
+        local r = (math.sin(t) + 1) / 2
+        local g = (math.sin(t + 2) + 1) / 2
+        local b = (math.sin(t + 4) + 1) / 2
+        local color = Color3.new(r, g, b)
+
+        outerStroke.Color = color
+        iconStroke.Color = color
+        titleStroke.Color = color
+        descStroke.Color = color
+        extraTitleStroke.Color = color
+        extraDescStroke.Color = color
+        wait(0.03)
+    end
 end)
 
--- Fade out animation after 4 seconds visible, 5 seconds fade
+-- Fade out after 4 seconds visible, 5 seconds fade duration
 delay(4, function()
     cycling = false
 
     local tweenInfo = TweenInfo.new(5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    local bgColor = Color3.fromRGB(37, 37, 37) -- background color for stroke fade
+
     local fadeTween = TweenService:Create(frame, tweenInfo, {BackgroundTransparency = 1})
     fadeTween:Play()
 
-    local function fadeUI(obj)
-        local tw = TweenService:Create(obj, tweenInfo, {TextTransparency = 1, TextStrokeTransparency = 1, BackgroundTransparency = 1})
+    local function fadeUI(guiObj)
+        local tw = TweenService:Create(guiObj, tweenInfo, {TextTransparency = 1, TextStrokeTransparency = 1, BackgroundTransparency = 1})
         tw:Play()
         return tw
     end
@@ -174,7 +198,7 @@ delay(4, function()
     iconTween:Play()
 
     local function fadeStrokeColor(stroke)
-        local tw = TweenService:Create(stroke, tweenInfo, {Color = Color3.new(1, 1, 1)})
+        local tw = TweenService:Create(stroke, tweenInfo, {Color = bgColor})
         tw:Play()
         return tw
     end
@@ -190,8 +214,7 @@ delay(4, function()
     screenGui:Destroy()
 end)
 
--- The rest of your original script logic here:
-
+--== Original Script Logic Below ==--
 local getinfo = getinfo or debug.getinfo
 local DEBUG = false
 local Hooked = {}
