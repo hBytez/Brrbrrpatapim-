@@ -10,7 +10,7 @@ screenGui.Parent = game.Players.LocalPlayer.PlayerGui
 local frame = Instance.new("Frame")
 frame.Name = "NotificationFrame"
 frame.Size = UDim2.new(0, 340, 0, 80)
-frame.Position = UDim2.new(1, -340 - 170, 1, -95) -- centered horizontally near bottom right
+frame.Position = UDim2.new(1, -340, 1, -95) -- bottom right
 frame.BackgroundColor3 = Color3.fromRGB(37, 37, 37)
 frame.BorderSizePixel = 0
 frame.BackgroundTransparency = 0.05
@@ -22,8 +22,8 @@ corner.CornerRadius = UDim.new(0, 12)
 corner.Parent = frame
 
 local outerStroke = Instance.new("UIStroke")
-outerStroke.Thickness = 1 -- thinner than gray outlines
-outerStroke.Color = Color3.new(1, 0, 0) -- starts red; cycles with loop
+outerStroke.Thickness = 1 -- thinner outline
+outerStroke.Color = Color3.new(1, 0, 0) -- initial color (red)
 outerStroke.Parent = frame
 
 local icon = Instance.new("ImageLabel")
@@ -34,8 +34,8 @@ icon.Image = "rbxassetid://16913919445"
 icon.Parent = frame
 
 local iconStroke = Instance.new("UIStroke")
-iconStroke.Thickness = 0.5
-iconStroke.Color = Color3.fromRGB(128, 128, 128)
+iconStroke.Thickness = 1 -- thicker for RGB outline
+iconStroke.Color = Color3.new(1, 0, 0) -- initial color (red)
 iconStroke.Parent = icon
 
 local title = Instance.new("TextLabel")
@@ -50,8 +50,8 @@ title.TextSize = 19
 title.Parent = frame
 
 local titleStroke = Instance.new("UIStroke")
-titleStroke.Thickness = 0.8
-titleStroke.Color = Color3.fromRGB(128, 128, 128)
+titleStroke.Thickness = 1 -- thicker for RGB outline
+titleStroke.Color = Color3.new(1, 0, 0)
 titleStroke.Parent = title
 
 local desc = Instance.new("TextLabel")
@@ -68,8 +68,8 @@ desc.TextWrapped = true
 desc.Parent = frame
 
 local descStroke = Instance.new("UIStroke")
-descStroke.Thickness = 0.7
-descStroke.Color = Color3.fromRGB(128, 128, 128)
+descStroke.Thickness = 1 -- thicker for RGB outline
+descStroke.Color = Color3.new(1, 0, 0)
 descStroke.Parent = desc
 
 local stroke = Instance.new("UIStroke")
@@ -79,7 +79,7 @@ stroke.Parent = frame
 
 game:GetService("Debris"):AddItem(screenGui, 8)
 
--- RGB gradient color cycling loop for the outline
+-- RGB gradient color cycling loop for outlines and strokes
 spawn(function()
     local t = 0
     while true do
@@ -89,6 +89,9 @@ spawn(function()
         local b = (math.sin(t + 4) + 1) / 2
         local color = Color3.new(r, g, b)
         outerStroke.Color = color
+        iconStroke.Color = color
+        titleStroke.Color = color
+        descStroke.Color = color
         wait(0.03)
     end
 end)
