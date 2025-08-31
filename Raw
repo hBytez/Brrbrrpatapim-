@@ -26,8 +26,13 @@ local icon = Instance.new("ImageLabel")
 icon.Size = UDim2.new(0, 32, 0, 32)
 icon.Position = UDim2.new(0, 16, 0, 16)
 icon.BackgroundTransparency = 1
-icon.Image = "rbxassetid://6031154870" -- Bell icon asset
+icon.Image = ""  -- Empty image to use decal instead
 icon.Parent = frame
+
+local iconDecal = Instance.new("Decal")
+iconDecal.Texture = "rbxassetid://6031154870"  -- Bell icon decal ID
+iconDecal.Face = Enum.NormalId.Front
+iconDecal.Parent = icon
 
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, -60, 0, 22)
@@ -59,9 +64,9 @@ stroke.Thickness = 2
 stroke.Color = Color3.fromRGB(128, 128, 128) -- grey
 stroke.Parent = frame
 
--- Grey outline on icon
+-- Smaller outline for the icon
 local iconStroke = Instance.new("UIStroke")
-iconStroke.Thickness = 1
+iconStroke.Thickness = 0.5 -- Smaller thickness for the icon outline
 iconStroke.Color = Color3.fromRGB(128, 128, 128)
 iconStroke.Parent = icon
 
