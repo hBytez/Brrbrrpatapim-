@@ -11,7 +11,7 @@ local frame = Instance.new("Frame")
 frame.Name = "NotificationFrame"
 frame.Size = UDim2.new(0, 340, 0, 80)
 frame.AnchorPoint = Vector2.new(1, 1)
-frame.Position = UDim2.new(1, 0, 1, 0) -- exact bottom right corner
+frame.Position = UDim2.new(1, -60, 1, -20) -- moved left and up
 frame.BackgroundColor3 = Color3.fromRGB(37, 37, 37)
 frame.BorderSizePixel = 0
 frame.BackgroundTransparency = 0.05
@@ -72,7 +72,6 @@ descStroke.Thickness = 1
 descStroke.Color = Color3.new(1, 0, 0)
 descStroke.Parent = desc
 
--- Additional outer RGB outlines on texts (thicker)
 local function createExtraRGBOutline(textLabel)
     local extraOutline = Instance.new("UIStroke")
     extraOutline.Thickness = 2
