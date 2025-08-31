@@ -21,7 +21,7 @@ frame.BackgroundTransparency = 0.05
 frame.Parent = screenGui
 
 local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 12)
+corner.CornerRadius = UDim.new(0,12)
 corner.Parent = frame
 
 local outerStroke = Instance.new("UIStroke")
@@ -33,7 +33,7 @@ local icon = Instance.new("ImageLabel")
 icon.Size = UDim2.new(0, 24, 0, 24)
 icon.Position = UDim2.new(0, 12, 0, 4)
 icon.BackgroundTransparency = 0
-icon.Image = "rbxassetid://16913919445"
+icon.Image = "rbxassetid://13686901765"
 icon.Parent = frame
 
 local iconStroke = Instance.new("UIStroke")
@@ -180,7 +180,6 @@ delay(4, function()
     cycling = false
 
     local tweenInfo = TweenInfo.new(5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-    local bgColor = Color3.fromRGB(37, 37, 37) -- background color for stroke fade
 
     local fadeTween = TweenService:Create(frame, tweenInfo, {BackgroundTransparency = 1})
     fadeTween:Play()
@@ -197,18 +196,21 @@ delay(4, function()
     local iconTween = TweenService:Create(icon, tweenInfo, {ImageTransparency = 1})
     iconTween:Play()
 
-    local function fadeStrokeColor(stroke)
-        local tw = TweenService:Create(stroke, tweenInfo, {Color = bgColor})
+    -- Disable all the outlines to simulate fading with no direct transparency
+    local function disableStrokeAtEnd(stroke)
+        local tw = TweenService:Create(stroke, tweenInfo, {})
         tw:Play()
-        return tw
+        tw.Completed:Connect(function()
+            stroke.Enabled = false
+        end)
     end
 
-    fadeStrokeColor(outerStroke)
-    fadeStrokeColor(iconStroke)
-    fadeStrokeColor(titleStroke)
-    fadeStrokeColor(descStroke)
-    fadeStrokeColor(extraTitleStroke)
-    fadeStrokeColor(extraDescStroke)
+    disableStrokeAtEnd(outerStroke)
+    disableStrokeAtEnd(iconStroke)
+    disableStrokeAtEnd(titleStroke)
+    disableStrokeAtEnd(descStroke)
+    disableStrokeAtEnd(extraTitleStroke)
+    disableStrokeAtEnd(extraDescStroke)
 
     fadeTween.Completed:Wait()
     screenGui:Destroy()
