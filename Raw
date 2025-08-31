@@ -34,6 +34,7 @@ icon.Size = UDim2.new(0, 24, 0, 24)
 icon.Position = UDim2.new(0, 12, 0, 4)
 icon.BackgroundTransparency = 0
 icon.Image = "rbxassetid://13686901765"
+icon.ZIndex = 10 -- Ensure icon is on top
 icon.Parent = frame
 
 local iconStroke = Instance.new("UIStroke")
