@@ -9,8 +9,8 @@ screenGui.Parent = game.Players.LocalPlayer.PlayerGui
 
 local frame = Instance.new("Frame")
 frame.Name = "NotificationFrame"
-frame.Size = UDim2.new(0, 340, 0, 80) -- Reduced width and adjusted height
-frame.Position = UDim2.new(1, -360, 1, -95) -- Adjusted position for better fit
+frame.Size = UDim2.new(0, 340, 0, 80)
+frame.Position = UDim2.new(1, -360, 1, -95)
 frame.BackgroundColor3 = Color3.fromRGB(37, 37, 37)
 frame.BorderSizePixel = 0
 frame.BackgroundTransparency = 0.05
@@ -22,14 +22,14 @@ corner.CornerRadius = UDim.new(0, 12)
 corner.Parent = frame
 
 local icon = Instance.new("ImageLabel")
-icon.Size = UDim2.new(0, 24, 0, 24) -- Smaller, visible icon size
-icon.Position = UDim2.new(0, 12, 0, 14) -- Proper padding
-icon.BackgroundTransparency = 1
-icon.Image = "rbxassetid://16913919445" -- Bell icon asset ID; ensure it is valid and public
+icon.Size = UDim2.new(0, 24, 0, 24)
+icon.Position = UDim2.new(0, 12, 0, 4) -- moved 10 pixels up
+icon.BackgroundTransparency = 0 -- no transparency
+icon.Image = "rbxassetid://16913919445"
 icon.Parent = frame
 
 local iconStroke = Instance.new("UIStroke")
-iconStroke.Thickness = 0.5 -- thinner outline
+iconStroke.Thickness = 0.5
 iconStroke.Color = Color3.fromRGB(128, 128, 128)
 iconStroke.Parent = icon
 
