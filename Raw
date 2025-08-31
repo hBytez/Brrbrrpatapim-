@@ -23,14 +23,14 @@ corner.CornerRadius = UDim.new(0, 12)
 corner.Parent = frame
 
 local icon = Instance.new("ImageLabel")
-icon.Size = UDim2.new(0, 32, 0, 32)
-icon.Position = UDim2.new(0, 16, 0, 16)
+icon.Size = UDim2.new(0, 26, 0, 26) -- smaller size for spacing
+icon.Position = UDim2.new(0, 19, 0, 19) -- moved 3 pixels from original position
 icon.BackgroundTransparency = 1
-icon.Image = ""  -- Empty image to use decal instead
+icon.Image = ""
 icon.Parent = frame
 
 local iconDecal = Instance.new("Decal")
-iconDecal.Texture = "rbxassetid://6031154870"  -- Bell icon decal ID
+iconDecal.Texture = "rbxassetid://16913919445"  -- Updated bell icon decal ID
 iconDecal.Face = Enum.NormalId.Front
 iconDecal.Parent = icon
 
