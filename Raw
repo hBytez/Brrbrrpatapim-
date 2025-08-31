@@ -1,4 +1,3 @@
---== Notification GUI Creation (KAROX Style) ==--
 if game.Players.LocalPlayer.PlayerGui:FindFirstChild("KAROXNotice") then
     game.Players.LocalPlayer.PlayerGui.KAROXNotice:Destroy()
 end
@@ -11,7 +10,7 @@ screenGui.Parent = game.Players.LocalPlayer.PlayerGui
 local frame = Instance.new("Frame")
 frame.Name = "NotificationFrame"
 frame.Size = UDim2.new(0, 380, 0, 90)
-frame.Position = UDim2.new(1, -400, 1, -110)
+frame.Position = UDim2.new(1, -400, 1, -105) -- moved up 5 pixels
 frame.BackgroundColor3 = Color3.fromRGB(37, 37, 37)
 frame.BorderSizePixel = 0
 frame.BackgroundTransparency = 0.05
@@ -24,15 +23,15 @@ corner.Parent = frame
 
 local icon = Instance.new("ImageLabel")
 icon.Size = UDim2.new(0, 26, 0, 26) -- smaller size for spacing
-icon.Position = UDim2.new(0, 19, 0, 19) -- moved 3 pixels from original position
+icon.Position = UDim2.new(0, 19, 0, 19) -- consistent position
 icon.BackgroundTransparency = 1
-icon.Image = ""
+icon.Image = "rbxassetid://16913919445" -- direct image instead of decal
 icon.Parent = frame
 
-local iconDecal = Instance.new("Decal")
-iconDecal.Texture = "rbxassetid://16913919445"  -- Updated bell icon decal ID
-iconDecal.Face = Enum.NormalId.Front
-iconDecal.Parent = icon
+local iconStroke = Instance.new("UIStroke")
+iconStroke.Thickness = 0.5 -- smaller thickness for the icon outline
+iconStroke.Color = Color3.fromRGB(128, 128, 128)
+iconStroke.Parent = icon
 
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, -60, 0, 22)
@@ -44,6 +43,11 @@ title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.TextXAlignment = Enum.TextXAlignment.Left
 title.TextSize = 20
 title.Parent = frame
+
+local titleStroke = Instance.new("UIStroke")
+titleStroke.Thickness = 1
+titleStroke.Color = Color3.fromRGB(128, 128, 128)
+titleStroke.Parent = title
 
 local desc = Instance.new("TextLabel")
 desc.Size = UDim2.new(1, -32, 1, -48)
@@ -58,29 +62,15 @@ desc.TextSize = 16
 desc.TextWrapped = true
 desc.Parent = frame
 
--- Grey outline on the main frame
-local stroke = Instance.new("UIStroke")
-stroke.Thickness = 2
-stroke.Color = Color3.fromRGB(128, 128, 128) -- grey
-stroke.Parent = frame
-
--- Smaller outline for the icon
-local iconStroke = Instance.new("UIStroke")
-iconStroke.Thickness = 0.5 -- Smaller thickness for the icon outline
-iconStroke.Color = Color3.fromRGB(128, 128, 128)
-iconStroke.Parent = icon
-
--- Grey outline on title
-local titleStroke = Instance.new("UIStroke")
-titleStroke.Thickness = 1
-titleStroke.Color = Color3.fromRGB(128, 128, 128)
-titleStroke.Parent = title
-
--- Grey outline on description
 local descStroke = Instance.new("UIStroke")
 descStroke.Thickness = 1
 descStroke.Color = Color3.fromRGB(128, 128, 128)
 descStroke.Parent = desc
+
+local stroke = Instance.new("UIStroke")
+stroke.Thickness = 2
+stroke.Color = Color3.fromRGB(128, 128, 128) -- grey outline
+stroke.Parent = frame
 
 game:GetService("Debris"):AddItem(screenGui, 8)
 
@@ -138,7 +128,6 @@ end
 spawn(function()
     while wait() do
         local player = game.Players.LocalPlayer
-        local playerName = player.Name
         pcall(function()
             if game.ReplicatedStorage:FindFirstChild("Remotes") and game.ReplicatedStorage.Remotes:FindFirstChild("Events") and game.ReplicatedStorage.Remotes.Events:FindFirstChild("GameManager") then
                 game.ReplicatedStorage.Remotes.Events.GameManager:Destroy()
